@@ -1,0 +1,37 @@
+# PHP/Composer
+vendor/
+.phpunit.result.cache
+.php-cs-fixer.cache
+.phpunit.cache
+
+# Configuração e Segredos
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build e Deploy
+deploy_package/
+*.tar.gz
+*.zip
+
+# Logs e Cache
+logs/*.log
+!logs/.gitkeep
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Banco de dados (opcional - remova se quiser commitar o schema inicial)
+#database.sql
