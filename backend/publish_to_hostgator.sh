@@ -14,8 +14,8 @@ USER=${FTP_USER:-"adri7808"}
 PORT=${SSH_PORT:-22}
 
 # Caminhos remotos (relativos ao home do usuário)
-REMOTE_CORE="php_template"
-REMOTE_PUBLIC="public_html/php_template"
+REMOTE_CORE="cronolog"
+REMOTE_PUBLIC="public_html/cronolog/api"
 
 MODE="light"
 if [ "$1" == "--full" ]; then
@@ -26,7 +26,7 @@ echo "🚀 Preparando pacote de deploy (Modo $MODE)..."
 ./generate_deploy_package.sh $1
 
 # Verificar se pacotes existem
-if [ ! -d "./deploy_package/php_template_core" ] || [ ! -d "./deploy_package/php_template_public" ]; then
+if [ ! -d "./deploy_package/cronolog_core" ] || [ ! -d "./deploy_package/cronolog_public" ]; then
     echo "❌ Erro: Falha ao gerar pacote de deploy!"
     exit 1
 fi
@@ -47,11 +47,14 @@ lftp <<EOF
 set sftp:auto-confirm yes
 open -u "$USER","$FTP_PASS" sftp://"$HOST":"$PORT"
 
-echo "  🔹 Sincronizando Core (php_template)..."
-mirror -R ./deploy_package/php_template_core/ "$REMOTE_CORE"
+echo "  🔹 Sincronizando Core (cronolog)..."
+# Passo 1: Sincroniza tudo EXCETO arquivos de configuração (.env*)
+mirror -R --exclude ^\.env ./deploy_package/cronolog_core/ "$REMOTE_CORE"
+# Passo 2: Sincroniza apenas arquivos de configuração (.env*) que NÃO existem no servidor
+mirror -R --include ^\.env --ignore-existing ./deploy_package/cronolog_core/ "$REMOTE_CORE"
 
-echo "  🔹 Sincronizando Public (public_html/php_template)..."
-mirror -R ./deploy_package/php_template_public/ "$REMOTE_PUBLIC"
+echo "  🔹 Sincronizando Public (public_html/cronolog)..."
+mirror -R ./deploy_package/cronolog_public/ "$REMOTE_PUBLIC"
 quit
 EOF
 

@@ -23,7 +23,7 @@ return function (ContainerBuilder $containerBuilder) {
                 'db' => [
                     'host' => $_ENV['DB_HOST'] ?? 'localhost',
                     'port' => $_ENV['DB_PORT'] ?? '3306',
-                    'database' => $_ENV['DB_NAME'] ?? 'php_template',
+                    'database' => $_ENV['DB_NAME'] ?? 'cronolog',
                     'username' => $_ENV['DB_USER'] ?? 'root',
                     'password' => $_ENV['DB_PASS'] ?? '',
                     'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4',

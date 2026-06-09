@@ -10,7 +10,7 @@ use GuzzleHttp\Exception\ClientException;
 // --- CONFIGURATION ---
 // Change this to the URL where your Slim app is running
 // Remote URL on HostGator
-$baseUrl = 'https://pogger.com.br/php_template'; 
+$baseUrl = 'https://pogger.com.br/cronolog'; 
 
 $client = new Client([
     'base_uri' => $baseUrl,

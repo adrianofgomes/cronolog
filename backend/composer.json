@@ -1,6 +1,6 @@
 {
-    "name": "adrianofgomes/php-template",
-    "description": "PHP REST API Template",
+    "name": "adrianofgomes/cronolog",
+    "description": "Cronolog REST API",
     "type": "project",
     "license": "MIT",
     "autoload": {
