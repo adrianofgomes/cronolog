@@ -6,7 +6,7 @@ Cronolog é uma aplicação full-stack composta por uma API REST em PHP e um fro
 
 ```text
 ├── backend/            # API REST em PHP (Slim 4)
-├── frontend/           # Interface Web em Next.js 15
+├── frontend/           # Interface Web em Next.js 16
 ├── deploy.sh           # Script de deploy unificado (Front + Back)
 ├── database.sql        # Esquema inicial do banco de dados
 ├── README.md           # Documentação geral
@@ -42,7 +42,7 @@ O backend segue os princípios de Clean Architecture e utiliza o Slim Framework 
 O frontend é uma Single Page Application (SPA) construída com Next.js, focada em performance e UX.
 
 ### Tecnologias Frontend
-- **Next.js 15** (App Router)
+- **Next.js 16** (App Router)
 - **TypeScript**
 - **React 19**
 - **Axios** (Integração com API)
