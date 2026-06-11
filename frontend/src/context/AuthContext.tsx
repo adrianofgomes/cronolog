@@ -7,14 +7,17 @@ interface User {
   name: string;
   email: string;
   picture: string;
+  status: 'pending' | 'active' | 'blocked';
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, userData: any) => void;
+  login: (token: string, userData: any) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  refreshUserStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,30 +29,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('auth_user');
+    const initAuth = async () => {
+      const savedToken = localStorage.getItem('auth_token');
+      const savedUser = localStorage.getItem('auth_user');
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
+      if (savedToken && savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        setToken(savedToken);
+        setUser(parsedUser);
 
-  const login = (newToken: string, userData: any) => {
-    // Basic user info extraction from decoded token or passed data
-    // For this example, we assume userData is already processed
-    const userObj = {
-      name: userData.name,
-      email: userData.email,
-      picture: userData.picture,
+        // Se o status estiver ausente (versão antiga) ou para garantir que está atualizado
+        try {
+          const { default: api } = await import('@/lib/api');
+          const response = await api.get('/users/me', {
+            headers: { Authorization: `Bearer ${savedToken}` }
+          });
+          const dbUser = response.data.data;
+          const updatedUser: User = { 
+            ...parsedUser, 
+            name: dbUser.name || parsedUser.name,
+            status: dbUser.status,
+            isAdmin: dbUser.isAdmin
+          };
+          setUser(updatedUser);
+          localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        } catch (err: any) {
+          console.error('Erro ao atualizar usuário na inicialização:', err);
+          // Se der 401 ou 403, mantemos o que tem ou tratamos conforme necessário
+          if (err.response?.status === 401) logout();
+        }
+      }
+      setIsLoading(false);
     };
 
+    initAuth();
+  }, []);
+
+  const login = async (newToken: string, googleData: any) => {
     setToken(newToken);
-    setUser(userObj);
     localStorage.setItem('auth_token', newToken);
-    localStorage.setItem('auth_user', JSON.stringify(userObj));
+
+    try {
+      const { default: api } = await import('@/lib/api');
+      const response = await api.get('/users/me', {
+        headers: { Authorization: `Bearer ${newToken}` }
+      });
+      
+      const dbUser = response.data.data;
+
+      const userObj: User = {
+        name: dbUser.name || googleData.name,
+        email: dbUser.email || googleData.email,
+        picture: googleData.picture,
+        status: dbUser.status,
+        isAdmin: dbUser.isAdmin
+      };
+
+      setUser(userObj);
+      localStorage.setItem('auth_user', JSON.stringify(userObj));
+    } catch (error: any) {
+      console.error('Error during backend login:', error);
+      
+      const userObj: User = {
+        name: googleData.name,
+        email: googleData.email,
+        picture: googleData.picture,
+        status: error.response?.status === 403 ? 'pending' : 'pending',
+        isAdmin: false
+      };
+      setUser(userObj);
+      localStorage.setItem('auth_user', JSON.stringify(userObj));
+    }
     router.push('/');
+  };
+
+  const refreshUserStatus = async () => {
+    if (!token) return;
+    try {
+      const { default: api } = await import('@/lib/api');
+      const response = await api.get('/users/me');
+      const dbUser = response.data.data;
+      
+      setUser(prev => prev ? { ...prev, status: dbUser.status, isAdmin: dbUser.isAdmin } : null);
+      localStorage.setItem('auth_user', JSON.stringify({ ...user, status: dbUser.status, isAdmin: dbUser.isAdmin }));
+    } catch (error) {
+      console.error('Error refreshing user status:', error);
+    }
   };
 
   const logout = () => {
@@ -61,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, refreshUserStatus }}>
       {children}
     </AuthContext.Provider>
   );

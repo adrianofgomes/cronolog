@@ -23,8 +23,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Token expired or invalid, or user pending approval
-      // Handle accordingly, maybe redirect to login or show a message
+      // Session expired or unauthorized
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/cronolog/login/';
+      }
     }
     return Promise.reject(error);
   }

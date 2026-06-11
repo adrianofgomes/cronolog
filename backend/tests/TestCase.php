@@ -35,6 +35,11 @@ abstract class TestCase extends PHPUnitTestCase
         // Repositories
         $repositories = require __DIR__ . '/../app/repositories.php';
         $repositories($containerBuilder);
+        
+        // Logger mock
+        $containerBuilder->addDefinitions([
+            \Psr\Log\LoggerInterface::class => $this->createMock(\Psr\Log\LoggerInterface::class),
+        ]);
 
         if (!empty($definitions)) {
             $containerBuilder->addDefinitions($definitions);
@@ -47,6 +52,9 @@ abstract class TestCase extends PHPUnitTestCase
 
         // Add Routing Middleware
         $app->addRoutingMiddleware();
+
+        // Add Body Parsing Middleware
+        $app->addBodyParsingMiddleware();
 
         // Add Error Middleware
         $app->addErrorMiddleware(true, false, false);

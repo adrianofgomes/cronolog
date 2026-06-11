@@ -8,15 +8,44 @@ Este arquivo é a **fonte única de verdade** para todos os agentes de IA (Gemin
 - `database.sql`: Schema do banco de dados
 - `README.md`: Documentação geral
 
-## 🏛️ Arquitetura e Padrões (Backend)
+## 🔄 Banco de Dados e Migrações
 
-- **Framework:** Slim 4.
-- **Injeção de Dependência:** PHP-DI 7.
-- **Padrão de Design:** Clean Architecture simplificada.
-  - `backend/src/Domain`: Entidades e interfaces de repositório (regras de negócio).
-  - `backend/src/Infrastructure`: Implementações concretas (PDO, MySQL).
-  - `backend/src/Application/Actions`: Handlers de requisição (Controllers).
-  - `backend/src/Application/Middleware`: Lógica de interceptação (Auth, Admin).
+Este projeto utiliza o [Phinx](https://phinx.org/) para gerenciamento de migrações do banco de dados. **NUNCA altere o schema manualmente ou apenas pelo arquivo `database.sql`.**
+
+### Fluxo de Trabalho (Para Agentes)
+
+1.  **Criar Nova Migração:**
+    ```bash
+    cd backend
+    ./vendor/bin/phinx create NomeDaMigracao
+    ```
+2.  **Editar Migração:** Edite o arquivo gerado em `backend/db/migrations/`.
+3.  **Aplicar Migrações:**
+    ```bash
+    cd backend
+    ./vendor/bin/phinx migrate
+    ```
+
+### Deploy
+O script de deploy (`deploy.sh` ou scripts individuais) automatiza a instalação das dependências de produção (`composer install --no-dev`) e executa `./vendor/bin/phinx migrate` no ambiente de destino antes da aplicação iniciar.
+O arquivo `database.sql` na raiz é mantido apenas para fins históricos e documentação de referência.
+
+## 📊 Modelagem de Dados (v2)
+
+O sistema utiliza uma abordagem flexível baseada em JSON para permitir múltiplos tipos de eventos sem complexidade excessiva de tabelas.
+
+- **Profiles:** Permite segmentar eventos por membros da família.
+- **Categorias Dinâmicas:** Cada categoria possui um `metadata_schema` (JSON) que define os atributos técnicos daquela categoria.
+- **Events (Log Principal):** 
+  - `metadata` (JSON): Armazena os dados específicos conforme a categoria.
+  - `source` & `raw_input`: Preparado para processamento de linguagem natural (IA).
+
+### Fluxo de IA (Visionário)
+O campo `categories.metadata_schema` deve conter a definição dos campos esperados. Exemplo para categoria "Abastecimento":
+```json
+{ "km": "number", "litros": "number", "total": "number" }
+```
+A IA usará este esquema para extrair informações de um texto livre e preencher `events.metadata`.
 
 ## 🚀 Fluxos de Trabalho Principais
 
@@ -33,9 +62,13 @@ Este arquivo é a **fonte única de verdade** para todos os agentes de IA (Gemin
 - **Nota Técnica:** O `backend/app/routes.php` desativa a detecção de `basePath` em modo CLI para evitar erros 404 nos testes.
 
 ### Deploy (HostGator)
-O projeto utiliza uma estrutura automatizada para deploy via SFTP (lftp):
+O projeto utiliza uma estrutura automatizada para deploy via SFTP (lftp) ou SSH (zip):
 - **Script Unificado (na raiz):**
-  - `./deploy.sh`: Executa o deploy do frontend e backend sequencialmente. Aceita `--full`.
+  - `./deploy.sh`: Executa o deploy do frontend e backend sequencialmente. 
+  - **Parâmetros:**
+    - `--full`: Faz o build completo.
+    - `--ftp`: Usa o método legado FTP/lftp (default é SSH).
+    - `--skipTests`: Pula a execução dos testes automatizados.
 - **Scripts de Módulo:**
   - `backend/generate_deploy_package.sh` & `backend/publish_to_hostgator.sh`.
   - `frontend/generate_deploy_package.sh` & `frontend/publish_to_hostgator.sh`.
@@ -46,8 +79,23 @@ Este projeto é desenvolvido majoritariamente por agentes de IA. As seguintes re
 
 1.  **Documentação Contínua:** Sempre que uma nova funcionalidade, rota ou alteração arquitetural for feita, a documentação pertinente (`README.md`, `GEMINI.md`, comentários de código) **deve** ser atualizada imediatamente.
 2.  **Testes Primeiro ou Junto:** Nenhuma funcionalidade nova deve ser considerada completa sem a criação dos respectivos testes automatizados (PHPUnit no backend, Jest/Cypress no frontend conforme aplicável).
-3.  **Validação de Regressão:** Após qualquer alteração, os testes existentes devem ser executados para garantir que não houve quebra de funcionalidades legadas.
-4.  **Idiomatismo:** Siga rigorosamente os padrões de código e arquitetura já estabelecidos no projeto.
+3.  **Segurança e Isolamento de Dados (Multi-tenancy):** É terminantemente proibido que um usuário tenha acesso a dados de outro usuário. Toda e qualquer query ao banco de dados ou chamada a repositórios **deve** incluir o `user_id` do usuário autenticado no filtro. Testes automatizados devem ser criados para validar que esse isolamento não seja quebrado.
+4.  **Validação de Regressão:** Após qualquer alteração, os testes existentes devem ser executados para garantir que não houve quebra de funcionalidades legadas.
+5.  **Idiomatismo:** Siga rigorosamente os padrões de código e arquitetura já estabelecidos no projeto.
+6.  **Tratamento de Data e Fuso Horário (Timezone):** O sistema utiliza **UTC** como padrão para armazenamento e comunicação (API).
+    - **Backend:** Sempre use `UTC` internamente. As datas retornadas pela API devem estar no formato ISO 8601 UTC (`Y-m-d\TH:i:s\Z`).
+    - **Frontend:** Receba datas em UTC e converta para o fuso horário local do usuário apenas para exibição e entrada nos formulários (utilize `toDateTimeLocal` e `toUTCISOString` em `frontend/src/lib/dateUtils.ts`).
+    - **NUNCA** envie ou armazene strings de data "naivas" (sem fuso horário) entre frontend e backend.
+8. **Formulários e Opcionalidade:**
+    - Todos os campos de preenchimento em formulários de eventos devem ser **opcionais**, a menos que haja uma necessidade de negócio estrita e justificada.
+    - **Datas:** Se o campo de data/hora não for preenchido pelo usuário, o sistema **deve** utilizar a data e hora atual (`new Date()` no frontend).
+    - **Metadados:** Nenhum campo dentro do `metadata` (ex: carro, KM, posto, serviço) deve ser obrigatório.
+9. **Padrões de UI/UX e Componentes Customizados:**
+    - É estritamente proibido o uso de `alert()`, `confirm()` ou `prompt()` nativos do navegador.
+    - Sempre utilize os componentes de interface customizados da aplicação para garantir a consistência visual (ex: `ConfirmationModal` para diálogos de confirmação).
+    - Qualquer novo componente de UI deve seguir a estrutura de `CSS Modules` e a identidade visual existente.
+    - Priorize a reutilização de componentes (como `VehicleHeaderForm` ou `ConfirmationModal`) antes de criar novos.
+
 
 ## ⚠️ Regras e Convenções
 
@@ -64,3 +112,24 @@ Este projeto é desenvolvido majoritariamente por agentes de IA. As seguintes re
 - **Auth:** Baseada em Google ID Token (Bearer).
 - **Cadastro Automático:** Usuários novos são criados com status `pending`.
 - **Admin:** Rotas sob `/users/admin` exigem `AdminMiddleware`.
+
+### Endpoints de Administração
+- `GET /users/admin/pending`: Lista usuários aguardando aprovação (Admin apenas).
+- `POST /users/admin/{googleId}/approve`: Aprova ou altera o status de um usuário (Admin apenas).
+
+## 🖥️ Frontend
+
+- **Tecnologias:** Next.js 15+, TypeScript, CSS Modules.
+- **Autenticação:** Google OAuth + JWT (Bearer).
+- **Gerenciamento de Estado:** AuthContext para dados de usuário e status de aprovação.
+- **Painel Administrativo:** Localizado em `/admin`, acessível apenas por administradores para gestão de novos usuários.
+
+## 🎨 Padrões de UI/UX (Frontend)
+
+Para manter a consistência e usabilidade do sistema, todos os novos formulários de eventos devem seguir rigorosamente este padrão:
+
+1.  **Estrutura de Modal:** Use o layout baseado em `styles.overlay`, `styles.modal`, e `styles.modalHeader` (como visto em `EventForm.module.css`).
+2.  **Campos Reutilizáveis:** Sempre que um campo puder ter valores repetidos (ex: nome do paciente, médico, posto, carro), implemente a funcionalidade de sugestão usando `<input list="id-da-lista">` e `<datalist id="id-da-lista">`.
+3.  **Sugestões (Autocomplete):** Carregue os valores únicos dos eventos anteriores da mesma categoria na montagem do componente (`useEffect`) e popule as listas de sugestões.
+4.  **Componentes:** Utilize os componentes reutilizáveis, como o `AttachmentComponent`, sempre que necessário.
+5.  **Instrução para IAs:** Ao implementar um novo tipo de evento, a IA deve criar o formulário seguindo o estilo visual (`.module.css`), a estrutura de campos de entrada, a lógica de sugestões de campos reutilizáveis e o tratamento de erros padrão dos formulários existentes (`EventForm`, `MedicalExamForm`).

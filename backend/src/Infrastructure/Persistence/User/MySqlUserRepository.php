@@ -15,12 +15,12 @@ class MySqlUserRepository extends MySqlRepository implements UserRepository
      */
     public function findUserByGoogleId(string $googleId): ?User
     {
-        $query = "SELECT id, google_id, email, name, is_admin, status FROM users WHERE google_id = :google_id";
+        $query = "SELECT id, google_id, email, name, is_admin, status, refresh_token FROM users WHERE google_id = :google_id";
         $statement = $this->connection->prepare($query);
         $statement->execute(['google_id' => $googleId]);
-        
+
         $row = $statement->fetch();
-        
+
         if (!$row) {
             return null;
         }
@@ -31,23 +31,22 @@ class MySqlUserRepository extends MySqlRepository implements UserRepository
             $row['email'],
             $row['name'],
             (bool) $row['is_admin'],
-            $row['status']
+            $row['status'],
+            $row['refresh_token']
         );
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function save(User $user): void
     {
         $query = "
-            INSERT INTO users (google_id, email, name, is_admin, status)
-            VALUES (:google_id, :email, :name, :is_admin, :status)
+            INSERT INTO users (google_id, email, name, is_admin, status, refresh_token)
+            VALUES (:google_id, :email, :name, :is_admin, :status, :refresh_token)
             ON DUPLICATE KEY UPDATE
                 email = VALUES(email),
                 name = VALUES(name),
                 is_admin = VALUES(is_admin),
-                status = VALUES(status)
+                status = VALUES(status),
+                refresh_token = VALUES(refresh_token)
         ";
 
         $statement = $this->connection->prepare($query);
@@ -57,6 +56,17 @@ class MySqlUserRepository extends MySqlRepository implements UserRepository
             'name' => $user->getName(),
             'is_admin' => (int) $user->isAdmin(),
             'status' => $user->getStatus(),
+            'refresh_token' => $user->getRefreshToken(),
+        ]);
+    }
+
+    public function update(User $user): void
+    {
+        $query = "UPDATE users SET refresh_token = :refresh_token WHERE google_id = :google_id";
+        $statement = $this->connection->prepare($query);
+        $statement->execute([
+            'refresh_token' => $user->getRefreshToken(),
+            'google_id' => $user->getGoogleId(),
         ]);
     }
 

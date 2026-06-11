@@ -19,6 +19,12 @@ interface UserRepository
     public function save(User $user): void;
 
     /**
+     * @param User $user
+     * @return void
+     */
+    public function update(User $user): void;
+
+    /**
      * @return User[]
      */
     public function findPendingUsers(): array;

@@ -14,6 +14,7 @@ class User implements JsonSerializable
     private ?string $name;
     private bool $isAdmin;
     private string $status;
+    private ?string $refreshToken;
 
     public function __construct(
         ?int $id,
@@ -21,7 +22,8 @@ class User implements JsonSerializable
         string $email,
         ?string $name,
         bool $isAdmin = false,
-        string $status = 'pending'
+        string $status = 'pending',
+        ?string $refreshToken = null
     ) {
         $this->id = $id;
         $this->googleId = $googleId;
@@ -29,6 +31,17 @@ class User implements JsonSerializable
         $this->name = $name;
         $this->isAdmin = $isAdmin;
         $this->status = $status;
+        $this->refreshToken = $refreshToken;
+    }
+
+    public function getRefreshToken(): ?string
+    {
+        return $this->refreshToken;
+    }
+
+    public function setRefreshToken(?string $refreshToken): void
+    {
+        $this->refreshToken = $refreshToken;
     }
 
     public function getId(): ?int

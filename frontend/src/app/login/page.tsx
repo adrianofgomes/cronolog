@@ -1,35 +1,22 @@
 'use client';
 
 import React from 'react';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
+import api from '@/lib/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
 
-  const handleSuccess = (credentialResponse: any) => {
+  const handleSuccess = async (credentialResponse: any) => {
     if (credentialResponse.credential) {
-      // Decode JWT locally to get basic user info
-      const base64Url = credentialResponse.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        window
-          .atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      
-      const payload = JSON.parse(jsonPayload);
-      
-      const userData = {
-        name: payload.name,
-        email: payload.email,
-        picture: payload.picture,
-      };
-
-      login(credentialResponse.credential, userData);
+      try {
+        const response = await api.post('/auth/login', { id_token: credentialResponse.credential });
+        login(response.data.data.token, response.data.data.user);
+      } catch (error) {
+        console.error('Login Failed', error);
+      }
     }
   };
 
@@ -52,6 +39,8 @@ export default function LoginPage() {
             useOneTap
             theme="filled_blue"
             shape="pill"
+            text="continue_with"
+            width="320"
           />
         </div>
       </div>

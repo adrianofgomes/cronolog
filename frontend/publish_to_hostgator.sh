@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Script de deploy do frontend para HostGator
+# Script de deploy unificado para HostGator (Front-end)
+# Parâmetros:
+#   $1: --full (opcional)
+#   $2: --ftp (opcional, default é SSH)
 
-# Faz o script parar se qualquer comando falhar
 set -e
 
 # Carregar variáveis do .env (tenta no diretório local, depois no root)
@@ -16,18 +18,13 @@ fi
 HOST=${FTP_HOST:-"69.6.212.64"}
 USER=${FTP_USER:-"adri7808"}
 PORT=${SSH_PORT:-22}
+PASS=$FTP_PASS
 
-# Caminho remoto unificado sob a pasta do projeto
-REMOTE_PUBLIC="public_html/cronolog"
+MODE=$1
+METHOD=$2
 
-MODE="light"
-if [ "$1" == "--full" ]; then
-    MODE="full"
-fi
-
-echo "🚀 Preparando pacote de deploy FRONTEND (Modo $MODE)..."
-chmod +x ./generate_deploy_package.sh
-./generate_deploy_package.sh $1
+echo "🚀 Preparando pacote de deploy FRONTEND (Modo ${MODE:-light})..."
+./generate_deploy_package.sh $MODE
 
 # Verificar se pacote existe
 if [ ! -d "./deploy_package" ]; then
@@ -35,33 +32,44 @@ if [ ! -d "./deploy_package" ]; then
     exit 1
 fi
 
-if [ -z "$FTP_PASS" ]; then
-    echo "❌ Erro: Variável FTP_PASS não encontrada. Certifique-se de que ela está definida no arquivo .env."
-    exit 1
-fi
-
-if ! command -v lftp >/dev/null 2>&1; then
-    echo "📦 lftp não encontrado. Instalando no Cloud Shell..."
-    sudo apt-get update -qq && sudo apt-get install -y lftp -qq
-fi
-
-echo "🚀 Iniciando sincronização via SFTP (lftp) usando senha..."
-
-lftp <<EOF
+if [ "$METHOD" == "--ftp" ]; then
+    echo "🚀 Iniciando deploy via FTP (lftp)..."
+    if [ -z "$PASS" ]; then
+        echo "❌ Erro: Variável FTP_PASS não encontrada."
+        exit 1
+    fi
+    if ! command -v lftp >/dev/null 2>&1; then sudo apt-get install -y lftp -qq; fi
+    
+    lftp <<EOF
 set sftp:auto-confirm yes
-open -u "$USER","$FTP_PASS" sftp://"$HOST":"$PORT"
-
-echo "  🔹 Sincronizando Frontend (public_html)..."
-# Cria a pasta remota se não existir
-mkdir -p "$REMOTE_PUBLIC" || true
-
-# Sincroniza o conteúdo. 
-# IMPORTANTE: Excluímos 'api/' para não apagar o backend que reside na subpasta.
-mirror -R --delete --exclude ^\.env --exclude api/ ./deploy_package/ "$REMOTE_PUBLIC"
-# Garante que arquivos .env* remotos não sejam sobrescritos
-mirror -R --include ^\.env --ignore-existing ./deploy_package/ "$REMOTE_PUBLIC"
-
+open -u "$USER","$PASS" sftp://"$HOST":"$PORT"
+mirror -R --delete --exclude-glob .env* --exclude api/ ./deploy_package/ "public_html/cronolog"
+mirror -R --include-glob .env* --only-missing ./deploy_package/ "public_html/cronolog"
 quit
 EOF
+else
+    echo "🚀 Iniciando deploy via SSH..."
+    if [ -z "$PASS" ]; then
+        echo "❌ Erro: Variável FTP_PASS não encontrada."
+        exit 1
+    fi
+    if ! command -v sshpass >/dev/null 2>&1; then sudo apt-get install -y sshpass -qq; fi
+    export SSHPASS=$PASS
+    
+    cd deploy_package && zip -r ../frontend.zip . && cd ..
+    
+    sshpass -e scp -P $PORT frontend.zip $USER@$HOST:~/
+    
+    sshpass -e ssh -p $PORT $USER@$HOST <<EOF
+        set -e
+        # Limpa frontend antigo exceto api
+        # Assumindo que a estrutura foi mantida
+        find "/home1/$USER/public_html/cronolog" -maxdepth 1 -not -name 'api' -not -name 'cronolog' -not -name '.' -exec rm -rf {} +
+        
+        unzip -o ~/frontend.zip -d "/home1/$USER/public_html/cronolog"
+        rm ~/frontend.zip
+EOF
+    rm frontend.zip
+fi
 
-echo "✅ Deploy do frontend concluído com sucesso!"
+echo "✅ Deploy FRONTEND concluído com sucesso!"

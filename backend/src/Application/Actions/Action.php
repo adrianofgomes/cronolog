@@ -55,13 +55,18 @@ abstract class Action
      */
     protected function getFormData()
     {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $this->request->getParsedBody();
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        if ($input === null) {
+            // Fallback for cases where body parsing middleware didn't run or wasn't needed
+            $input = json_decode(file_get_contents('php://input'), true);
+        }
+
+        if ($input === null && $this->request->getMethod() !== 'GET') {
             throw new HttpBadRequestException($this->request, 'Malformed JSON input.');
         }
 
-        return $input;
+        return $input ?? [];
     }
 
     /**

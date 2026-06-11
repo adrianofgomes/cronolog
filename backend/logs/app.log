@@ -1,0 +1,3 @@
+[2026-06-09T14:57:28.296543+00:00] slim-app.INFO: CreateEventAction input data {"data":{"categoryName":"Abastecimento","title":"Abastecimento Carro","metadata":{"posto":"Shell","tipo_combustivel":"Gasolina Aditivada"}}} {"uid":"614737a"}
+[2026-06-09T16:21:45.041558+00:00] slim-app.ERROR: Google Token Verification Error: Wrong number of segments [] {"uid":"6aaaa9c"}
+[2026-06-09T16:21:45.048548+00:00] slim-app.ERROR: Google Token Verification Error: Wrong number of segments [] {"uid":"78017ef"}

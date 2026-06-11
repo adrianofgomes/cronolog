@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# Faz o script parar se qualquer comando falhar
+# Script de deploy unificado para HostGator (Back-end)
+# Parâmetros:
+#   $1: --full (opcional)
+#   $2: --ftp (opcional, default é SSH)
+
 set -e
 
 # Carregar variáveis do .env se existir
@@ -9,21 +13,16 @@ if [ -f .env ]; then
 fi
 
 # Configurações
-HOST=${FTP_HOST:-"69.6.212.64"}
-USER=${FTP_USER:-"adri7808"}
+HOST="sh00102.hostgator.com.br"
+USER=${SSH_USER:-"adri7808"}
 PORT=${SSH_PORT:-22}
+PASS=$FTP_PASS
 
-# Caminhos remotos (relativos ao home do usuário)
-REMOTE_CORE="cronolog"
-REMOTE_PUBLIC="public_html/cronolog/api"
+MODE=$1
+METHOD=$2
 
-MODE="light"
-if [ "$1" == "--full" ]; then
-    MODE="full"
-fi
-
-echo "🚀 Preparando pacote de deploy (Modo $MODE)..."
-./generate_deploy_package.sh $1
+echo "🚀 Preparando pacote de deploy BACKEND (Modo ${MODE:-light})..."
+./generate_deploy_package.sh $MODE
 
 # Verificar se pacotes existem
 if [ ! -d "./deploy_package/cronolog_core" ] || [ ! -d "./deploy_package/cronolog_public" ]; then
@@ -31,31 +30,50 @@ if [ ! -d "./deploy_package/cronolog_core" ] || [ ! -d "./deploy_package/cronolo
     exit 1
 fi
 
-if [ -z "$FTP_PASS" ]; then
-    echo "❌ Erro: Variável FTP_PASS não encontrada. Certifique-se de que ela está definida no arquivo .env."
-    exit 1
-fi
-
-if ! command -v lftp >/dev/null 2>&1; then
-    echo "📦 lftp não encontrado. Instalando no Cloud Shell..."
-    sudo apt-get update -qq && sudo apt-get install -y lftp -qq
-fi
-
-echo "🚀 Iniciando sincronização via SFTP (lftp) usando senha..."
-
-lftp <<EOF
+if [ "$METHOD" == "--ftp" ]; then
+    echo "🚀 Iniciando deploy via FTP (lftp)..."
+    # Lógica FTP original
+    if [ -z "$PASS" ]; then
+        echo "❌ Erro: Variável FTP_PASS não encontrada."
+        exit 1
+    fi
+    if ! command -v lftp >/dev/null 2>&1; then sudo apt-get install -y lftp -qq; fi
+    
+    lftp <<EOF
 set sftp:auto-confirm yes
-open -u "$USER","$FTP_PASS" sftp://"$HOST":"$PORT"
-
-echo "  🔹 Sincronizando Core (cronolog)..."
-# Passo 1: Sincroniza tudo EXCETO arquivos de configuração (.env*)
-mirror -R --exclude ^\.env ./deploy_package/cronolog_core/ "$REMOTE_CORE"
-# Passo 2: Sincroniza apenas arquivos de configuração (.env*) que NÃO existem no servidor
-mirror -R --include ^\.env --ignore-existing ./deploy_package/cronolog_core/ "$REMOTE_CORE"
-
-echo "  🔹 Sincronizando Public (public_html/cronolog)..."
-mirror -R ./deploy_package/cronolog_public/ "$REMOTE_PUBLIC"
+open -u "$USER","$PASS" sftp://"$HOST":"$PORT"
+mirror -R --exclude-glob .env* --exclude-glob logs/* ./deploy_package/cronolog_core/ "cronolog"
+mirror -R --include-glob .env* --only-missing ./deploy_package/cronolog_core/ "cronolog"
+mirror -R --exclude-glob .env* ./deploy_package/cronolog_public/ "public_html/cronolog/api"
 quit
 EOF
+else
+    echo "🚀 Iniciando deploy via SSH..."
+    # Lógica SSH original
+    if [ -z "$PASS" ]; then
+        echo "❌ Erro: Variável FTP_PASS não encontrada."
+        exit 1
+    fi
+    if ! command -v sshpass >/dev/null 2>&1; then sudo apt-get install -y sshpass -qq; fi
+    export SSHPASS=$PASS
+    
+    cd deploy_package/cronolog_core && zip -r ../../core.zip . && cd ../..
+    cd deploy_package/cronolog_public && zip -r ../../public.zip . && cd ../..
+    
+    sshpass -e scp -P $PORT core.zip public.zip $USER@$HOST:~/
+    
+    sshpass -e ssh -p $PORT $USER@$HOST <<EOF
+        set -e
+        mkdir -p "/home1/$USER/cronolog/logs"
+        unzip -o ~/core.zip -d "/home1/$USER/cronolog" -x ".env*"
+        unzip -n ~/core.zip ".env*" -d "/home1/$USER/cronolog"
+        unzip -o ~/public.zip -d "/home1/$USER/public_html/cronolog/api"
+        cd "/home1/$USER/cronolog" && \
+            export $(grep -v '^#' .env | xargs) && \
+            ./vendor/bin/phinx migrate -c phinx.php -e production
+        rm ~/core.zip ~/public.zip
+EOF
+    rm core.zip public.zip
+fi
 
-echo "✅ Deploy concluído com sucesso!"
+echo "✅ Deploy BACKEND concluído com sucesso!"

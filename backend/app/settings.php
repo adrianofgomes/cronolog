@@ -31,6 +31,10 @@ return function (ContainerBuilder $containerBuilder) {
                 'google' => [
                     'client_id' => $_ENV['GOOGLE_CLIENT_ID'] ?? '',
                 ],
+                'jwt' => [
+                    'secret' => $_ENV['JWT_SECRET'] ?? 'default_secret_change_me',
+                    'expires_days' => (int) ($_ENV['JWT_EXPIRES_DAYS'] ?? 30),
+                ],
             ]);
         }
     ]);

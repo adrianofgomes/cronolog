@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Application\Middleware\AuthMiddleware;
 use App\Application\Settings\SettingsInterface;
+use App\Domain\User\UserRepository;
 use DI\ContainerBuilder;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
@@ -12,6 +14,13 @@ use Psr\Log\LoggerInterface;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
+        AuthMiddleware::class => function (ContainerInterface $c) {
+            return new AuthMiddleware(
+                $c->get(SettingsInterface::class),
+                $c->get(UserRepository::class),
+                $c->get(LoggerInterface::class)
+            );
+        },
         LoggerInterface::class => function (ContainerInterface $c) {
             $settings = $c->get(SettingsInterface::class);
 

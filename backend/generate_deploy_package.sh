@@ -25,19 +25,19 @@ echo "📦 Copiando arquivos do core..."
 # Copiamos explicitamente as pastas necessárias para evitar exclusões indesejadas
 cp -vR src "$CORE_DIR/"
 cp -vR app "$CORE_DIR/"
+cp -vR db "$CORE_DIR/"
 cp -v composer.json "$CORE_DIR/"
 cp -v composer.lock "$CORE_DIR/"
+cp -v phinx.php "$CORE_DIR/"
 
-if [ "$MODE" == "full" ]; then
-    if [ -d "vendor" ]; then
-        echo "📦 Copiando pasta vendor..."
-        cp -vR vendor "$CORE_DIR/"
-    else
-        echo "⚠️ Pasta vendor não encontrada!"
-    fi
-else
-    echo "⏭️ Pulando pasta vendor (Modo Light)"
-fi
+echo "📂 Criando pasta de logs..."
+mkdir -p "$CORE_DIR/logs"
+touch "$CORE_DIR/logs/.gitkeep"
+
+echo "📦 Gerando pasta vendor de produção (sem dependências de dev)..."
+# Criamos um ambiente limpo para o composer no diretório de destino
+# Isso garante que apenas dependências do 'require' entrem, sem PHPUnit etc.
+composer install --no-dev --optimize-autoloader --no-interaction --working-dir="$CORE_DIR"
 
 echo "🌐 Copiando arquivos públicos..."
 cp -r public/* $PUBLIC_DIR/

@@ -14,16 +14,20 @@ use App\Application\Settings\SettingsInterface;
 use App\Domain\User\UserRepository;
 use App\Domain\User\User;
 use Exception;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class AuthMiddleware implements MiddlewareInterface
 {
     private SettingsInterface $settings;
     private UserRepository $userRepository;
+    private \Psr\Log\LoggerInterface $logger;
 
-    public function __construct(SettingsInterface $settings, UserRepository $userRepository)
+    public function __construct(SettingsInterface $settings, UserRepository $userRepository, \Psr\Log\LoggerInterface $logger)
     {
         $this->settings = $settings;
         $this->userRepository = $userRepository;
+        $this->logger = $logger;
     }
 
     /**
@@ -41,35 +45,27 @@ class AuthMiddleware implements MiddlewareInterface
             throw new HttpUnauthorizedException($request, 'Invalid Authorization header format.');
         }
 
-        $idToken = $matches[1];
+        $token = $matches[1];
         
-        $userPayload = $this->verifyGoogleToken($idToken);
+        // 1. Verify Local JWT
+        $userPayload = $this->verifyLocalToken($token);
 
         if (!$userPayload) {
-            throw new HttpUnauthorizedException($request, 'Invalid or expired Google Token.');
+            throw new HttpUnauthorizedException($request, 'Invalid or expired session.');
         }
 
-        // Automatic Registration Logic
+        // 2. Fetch User from DB
         $googleId = $userPayload['sub'];
         $user = $this->userRepository->findUserByGoogleId($googleId);
 
         if (!$user) {
-            // First login: Register the user with pending status
-            $user = new User(
-                null,
-                $googleId,
-                $userPayload['email'],
-                $userPayload['name'] ?? null,
-                false, // Default: not admin
-                'pending' // Default: pending approval
-            );
-            $this->userRepository->save($user);
-            
-            throw new HttpForbiddenException($request, 'Cadastro em validação. Aguarde a aprovação de um administrador.');
+             throw new HttpUnauthorizedException($request, 'Usuário não encontrado.');
         }
 
-        // Check if user is approved
-        if (!$user->isActive()) {
+        // 3. Check if user is approved
+        $isMeRoute = strpos($request->getUri()->getPath(), '/users/me') !== false;
+
+        if (!$user->isActive() && !$isMeRoute) {
             if ($user->getStatus() === 'pending') {
                 throw new HttpForbiddenException($request, 'Cadastro em validação. Aguarde a aprovação de um administrador.');
             } else {
@@ -84,22 +80,26 @@ class AuthMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Verifies the Google ID Token.
+     * Verifies the Local long-lived JWT.
      */
-    private function verifyGoogleToken(string $idToken): ?array
+    private function verifyLocalToken(string $token): ?array
     {
-        try {
-            // Mock validation for demonstration
-            if ($idToken === 'test-token' || $idToken === 'new-user-token') {
+        // Support for test tokens in non-production environments
+        if ($this->settings->get('displayErrorDetails') === true) {
+            if ($token === 'test-token' || $token === 'new-user-token') {
                 return [
-                    'sub' => $idToken === 'test-token' ? '123456789' : '987654321',
-                    'email' => $idToken === 'test-token' ? 'admin@example.com' : 'newuser@example.com',
-                    'name' => $idToken === 'test-token' ? 'Admin User' : 'New User'
+                    'sub' => $token === 'test-token' ? '123456789' : '987654321',
+                    'email' => $token === 'test-token' ? 'admin@example.com' : 'newuser@example.com',
                 ];
             }
+        }
 
-            return null;
+        try {
+            $jwtSettings = $this->settings->get('jwt');
+            $decoded = JWT::decode($token, new Key($jwtSettings['secret'], 'HS256'));
+            return (array) $decoded;
         } catch (Exception $e) {
+            $this->logger->error('JWT Verification Error: ' . $e->getMessage());
             return null;
         }
     }
