@@ -13,18 +13,30 @@ interface Attachment {
 }
 
 interface AttachmentComponentProps {
-  eventId: number;
-  onAttachmentUploaded: (attachment: Attachment) => void;
+  eventId?: number;
+  onAttachmentUploaded?: (attachment: Attachment) => void;
+  onFileSelected?: (file: File, description: string) => void;
 }
 
-export default function AttachmentComponent({ eventId, onAttachmentUploaded }: AttachmentComponentProps) {
+export default function AttachmentComponent({ eventId, onAttachmentUploaded, onFileSelected }: AttachmentComponentProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
 
-  const uploadFile = async (file: File) => {
+  const handleFileChange = (file: File) => {
     if (!file) return;
+
+    if (eventId && onAttachmentUploaded) {
+      uploadFile(file);
+    } else if (onFileSelected) {
+      onFileSelected(file, description);
+      setDescription('');
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!file || !eventId || !onAttachmentUploaded) return;
     setLoading(true);
     try {
       const formData = new FormData();
@@ -71,12 +83,12 @@ export default function AttachmentComponent({ eventId, onAttachmentUploaded }: A
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={loading} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
           <Upload size={16} /> Arquivo
         </button>
-        <input type="file" ref={fileInputRef} onChange={(e) => e.target.files && uploadFile(e.target.files[0])} style={{ display: 'none' }} accept="image/*,.pdf" />
+        <input type="file" ref={fileInputRef} onChange={(e) => e.target.files && handleFileChange(e.target.files[0])} style={{ display: 'none' }} accept="image/*,.pdf" />
         
         <button type="button" onClick={() => cameraInputRef.current?.click()} disabled={loading} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
           <Camera size={16} /> Foto
         </button>
-        <input type="file" ref={cameraInputRef} onChange={(e) => e.target.files && uploadFile(e.target.files[0])} style={{ display: 'none' }} accept="image/*" capture="environment" />
+        <input type="file" ref={cameraInputRef} onChange={(e) => e.target.files && handleFileChange(e.target.files[0])} style={{ display: 'none' }} accept="image/*" capture="environment" />
       </div>
       {loading && <span style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>Enviando...</span>}
     </div>

@@ -33,6 +33,33 @@ export default function MaintenanceForm({ onClose, onSuccess, event }: Maintenan
     custo_pecas: event?.metadata?.custo_pecas?.toString() || ''
   });
   const [attachments, setAttachments] = useState<any[]>(event?.attachments || []);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; description: string; id: string }[]>([]);
+
+  const handleFileSelected = (file: File, description: string) => {
+    setPendingFiles(prev => [...prev, { file, description, id: Math.random().toString(36).substring(7) }]);
+  };
+
+  const removePendingFile = (id: string) => {
+    setPendingFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  const uploadPendingFiles = async (eventId: number) => {
+    for (const pending of pendingFiles) {
+      try {
+        const formData = new FormData();
+        formData.append('file', pending.file);
+        if (pending.description) {
+          formData.append('description', pending.description);
+        }
+        await api.post(`/events/${eventId}/attachments`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (error) {
+        console.error('Failed to upload pending file:', error);
+      }
+    }
+  };
+
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   const [suggestions, setSuggestions] = useState({
@@ -93,10 +120,15 @@ export default function MaintenanceForm({ onClose, onSuccess, event }: Maintenan
 
       if (event?.id) {
         await api.put(`/events/${event.id}`, payload);
+        onSuccess();
       } else {
-        await api.post('/events', payload);
+        const response = await api.post('/events', payload);
+        const newEventId = response.data.data.id;
+        if (pendingFiles.length > 0) {
+          await uploadPendingFiles(newEventId);
+        }
+        onSuccess();
       }
-      onSuccess();
     } catch (err: any) {
       console.error('Error saving:', err);
       setError('Falha ao salvar manutenção.');
@@ -208,25 +240,44 @@ export default function MaintenanceForm({ onClose, onSuccess, event }: Maintenan
             </div>
           </div>
 
-          {event?.id && (
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Anexos</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
-                {attachments.map((a: any) => (
-                  <div key={a.id} style={{ display: 'flex', flexDirection: 'column', padding: '8px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', gap: '4px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button type="button" onClick={() => handleDownload(a.filename, a.fileType)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 500, textAlign: 'left', flex: 1, fontSize: '14px' }}>
-                        {a.fileType === 'pdf' ? '📄 ' : '🖼️ '} {a.description || a.filename.split('_').slice(1).join('_') || a.filename}
-                      </button>
-                      <button type="button" onClick={() => handleDeleteAttachment(a.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
-                    </div>
-                    <input type="text" defaultValue={a.description} placeholder="Descrição..." onBlur={(e) => handleUpdateDescription(a.id, e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Anexos</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+              {/* Existing Attachments */}
+              {attachments.map((a: any) => (
+                <div key={a.id} style={{ display: 'flex', flexDirection: 'column', padding: '8px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button type="button" onClick={() => handleDownload(a.filename, a.fileType)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 500, textAlign: 'left', flex: 1, fontSize: '14px' }}>
+                      {a.fileType === 'pdf' ? '📄 ' : '🖼️ '} {a.description || a.filename.split('_').slice(1).join('_') || a.filename}
+                    </button>
+                    <button type="button" onClick={() => handleDeleteAttachment(a.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
                   </div>
-                ))}
-              </div>
-              <AttachmentComponent eventId={event.id} onAttachmentUploaded={(a) => setAttachments([...attachments, a])} />
+                  <input type="text" defaultValue={a.description} placeholder="Descrição..." onBlur={(e) => handleUpdateDescription(a.id, e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+                </div>
+              ))}
+
+              {/* Pending Attachments */}
+              {pendingFiles.map((pf) => (
+                <div key={pf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: '#fffbeb', borderRadius: '6px', border: '1px solid #fde68a', gap: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#92400e' }}>
+                      {pf.file.type === 'application/pdf' ? '📄 ' : '🖼️ '}
+                      {pf.file.name}
+                    </span>
+                    {pf.description && <span style={{ fontSize: '12px', color: '#b45309' }}>{pf.description}</span>}
+                  </div>
+                  <button type="button" onClick={() => removePendingFile(pf.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
             </div>
-          )}
+            <AttachmentComponent 
+              eventId={event?.id} 
+              onAttachmentUploaded={(a) => setAttachments([...attachments, a])}
+              onFileSelected={handleFileSelected}
+            />
+          </div>
 
           <div className={styles.actions}>
             {event?.id && (
