@@ -10,6 +10,11 @@ import styles from './dashboard.module.css';
 import EventForm from '@/components/events/EventForm';
 import MedicalExamForm from '@/components/events/MedicalExamForm';
 import MaintenanceForm from '@/components/events/MaintenanceForm';
+import VaccineForm from '@/components/events/VaccineForm';
+import MedicationForm from '@/components/events/MedicationForm';
+import AppointmentForm from '@/components/events/AppointmentForm';
+import GeneralEventForm from '@/components/events/GeneralEventForm';
+import EventTypeSelectorModal from '@/components/events/EventTypeSelectorModal';
 import Timeline from '@/components/events/Timeline';
 import { Event } from '@/types/event';
 
@@ -20,6 +25,11 @@ export default function HomePage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [showMedicalForm, setShowMedicalForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showVaccineForm, setShowVaccineForm] = useState(false);
+  const [showMedicationForm, setShowMedicationForm] = useState(false);
+  const [showAppointmentForm, setShowAppointmentForm] = useState(false);
+  const [showGeneralForm, setShowGeneralForm] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -30,17 +40,40 @@ export default function HomePage() {
       setShowMedicalForm(true);
     } else if (event.categoryName === 'Manutenção') {
       setShowMaintenanceForm(true);
+    } else if (event.categoryName === 'Vacina') {
+      setShowVaccineForm(true);
+    } else if (event.categoryName === 'Remédios') {
+      setShowMedicationForm(true);
+    } else if (event.categoryName === 'Consulta') {
+      setShowAppointmentForm(true);
+    } else if (event.categoryName === 'Geral') {
+      setShowGeneralForm(true);
     } else {
       setShowEventForm(true);
     }
   };
 
-  const handleAddNew = (type: 'fuel' | 'health' | 'maintenance' = 'fuel') => {
+  const handleAddNew = (type?: string) => {
     setEditingEvent(null);
+    
+    if (!type) {
+      setShowSelector(true);
+      return;
+    }
+
+    setShowSelector(false);
     if (type === 'health') {
       setShowMedicalForm(true);
+    } else if (type === 'vaccine') {
+      setShowVaccineForm(true);
+    } else if (type === 'medication') {
+      setShowMedicationForm(true);
+    } else if (type === 'appointment') {
+      setShowAppointmentForm(true);
     } else if (type === 'maintenance') {
       setShowMaintenanceForm(true);
+    } else if (type === 'general') {
+      setShowGeneralForm(true);
     } else {
       setShowEventForm(true);
     }
@@ -50,6 +83,11 @@ export default function HomePage() {
     setShowEventForm(false);
     setShowMedicalForm(false);
     setShowMaintenanceForm(false);
+    setShowVaccineForm(false);
+    setShowMedicationForm(false);
+    setShowAppointmentForm(false);
+    setShowGeneralForm(false);
+    setShowSelector(false);
     setEditingEvent(null);
   };
 
@@ -155,13 +193,14 @@ export default function HomePage() {
             </p>
           </div>
           {!isPending && !isBlocked && (
-            <button 
+            <button
               className={styles.addEventButton}
-              onClick={() => handleAddNew('fuel')}
+              onClick={() => handleAddNew()}
             >
               <Plus size={20} /> Novo Lançamento
             </button>
           )}
+
         </section>
 
         <section className={styles.dashboardGrid}>
@@ -233,6 +272,52 @@ export default function HomePage() {
             fetchEvents();
           }} 
           event={editingEvent}
+        />
+      )}
+      {showVaccineForm && (
+        <VaccineForm
+          onClose={handleCloseForm} 
+          onSuccess={() => {
+            handleCloseForm();
+            fetchEvents();
+          }} 
+          event={editingEvent}
+        />
+      )}
+      {showMedicationForm && (
+        <MedicationForm
+          onClose={handleCloseForm} 
+          onSuccess={() => {
+            handleCloseForm();
+            fetchEvents();
+          }} 
+          event={editingEvent}
+        />
+      )}
+      {showAppointmentForm && (
+        <AppointmentForm
+          onClose={handleCloseForm} 
+          onSuccess={() => {
+            handleCloseForm();
+            fetchEvents();
+          }} 
+          event={editingEvent}
+        />
+      )}
+      {showGeneralForm && (
+        <GeneralEventForm
+          onClose={handleCloseForm} 
+          onSuccess={() => {
+            handleCloseForm();
+            fetchEvents();
+          }} 
+          event={editingEvent}
+        />
+      )}
+      {showSelector && (
+        <EventTypeSelectorModal
+          onClose={() => setShowSelector(false)}
+          onSelect={(type) => handleAddNew(type)}
         />
       )}
     </div>

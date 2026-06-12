@@ -7,6 +7,7 @@ Cronolog é uma aplicação full-stack composta por uma API REST em PHP e um fro
 ```text
 ├── backend/            # API REST em PHP (Slim 4)
 ├── frontend/           # Interface Web em Next.js 16
+├── DOCUMENTACAO_FUNCIONAL.md # Documentação detalhada de funcionalidades
 ├── deploy.sh           # Script de deploy unificado (Front + Back)
 ├── database.sql        # Esquema inicial do banco de dados
 ├── README.md           # Documentação geral
