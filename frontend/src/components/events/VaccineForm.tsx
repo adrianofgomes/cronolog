@@ -3,29 +3,31 @@
 import React, { useState, useEffect } from 'react';
 import { Event } from '@/types/event';
 import styles from './EventForm.module.css';
-import { Save, X, FileText, User, Stethoscope, Calendar, Trash2 } from 'lucide-react';
+import { Save, X, Syringe, Trash2, MapPin, Hash, FileText } from 'lucide-react';
 import api from '@/lib/api';
 import AttachmentComponent from '@/components/common/AttachmentComponent';
 import { toDateTimeLocal, toUTCISOString } from '@/lib/dateUtils';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import HealthHeaderForm from './HealthHeaderForm';
 
-interface MedicalExamFormProps {
+interface VaccineFormProps {
   onClose: () => void;
   onSuccess: () => void;
   event?: any;
 }
 
-export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalExamFormProps) {
+export default function VaccineForm({ onClose, onSuccess, event }: VaccineFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
   
   const [metadata, setMetadata] = useState(event?.metadata || {
-    descricao: '',
+    vacina: '',
+    dose: '',
     paciente: '',
-    medico: '',
-    laudo: ''
+    estabelecimento: '',
+    lote: '',
+    observacoes: ''
   });
   const [eventDate, setEventDate] = useState(
     event ? toDateTimeLocal(new Date(event.eventDate)) : toDateTimeLocal(new Date())
@@ -34,45 +36,44 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
   const [pendingFiles, setPendingFiles] = useState<{ file: File; description: string; id: string }[]>([]);
 
   const [suggestions, setSuggestions] = useState({
-    descricoes: [] as string[],
+    vacinas: [] as string[],
+    doses: [] as string[],
     pacientes: [] as string[],
-    medicos: [] as string[]
+    estabelecimentos: [] as string[]
   });
 
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
-        const response = await api.get('/events', { params: { categoryName: 'Exame Médico' } });
-        const events = response.data.data || [];
-        
-        // Also fetch from other health categories for patient/doctor names
-        const [vaccinesRes, medsRes, appsRes] = await Promise.all([
-          api.get('/events', { params: { categoryName: 'Vacina' } }),
-          api.get('/events', { params: { categoryName: 'Remédios' } }),
-          api.get('/events', { params: { categoryName: 'Consulta' } })
+        // Fetch health events (exams and vaccines) to suggest patients
+        const [examsRes, vaccinesRes] = await Promise.all([
+          api.get('/events', { params: { categoryName: 'Exame Médico' } }),
+          api.get('/events', { params: { categoryName: 'Vacina' } })
         ]);
 
-        const allHealthEvents = [...events, ...(vaccinesRes.data.data || []), ...(medsRes.data.data || []), ...(appsRes.data.data || [])];
+        const allEvents = [...(examsRes.data.data || []), ...(vaccinesRes.data.data || [])];
         
-        const descricoes = new Set<string>();
+        const vacinas = new Set<string>();
+        const doses = new Set<string>();
         const pacientes = new Set<string>();
-        const medicos = new Set<string>();
+        const estabelecimentos = new Set<string>();
 
-        allHealthEvents.forEach((e: any) => {
+        allEvents.forEach((e: any) => {
           if (e.metadata) {
             if (e.metadata.paciente) pacientes.add(e.metadata.paciente);
-            if (e.metadata.medico) medicos.add(e.metadata.medico);
-            
-            if (e.categoryName === 'Exame Médico') {
-              if (e.metadata.descricao) descricoes.add(e.metadata.descricao);
+            if (e.categoryName === 'Vacina') {
+              if (e.metadata.vacina) vacinas.add(e.metadata.vacina);
+              if (e.metadata.dose) doses.add(e.metadata.dose);
+              if (e.metadata.estabelecimento) estabelecimentos.add(e.metadata.estabelecimento);
             }
           }
         });
 
         setSuggestions({
-          descricoes: Array.from(descricoes),
+          vacinas: Array.from(vacinas),
+          doses: Array.from(doses),
           pacientes: Array.from(pacientes),
-          medicos: Array.from(medicos)
+          estabelecimentos: Array.from(estabelecimentos)
         });
       } catch (err) {
         console.error('Error fetching suggestions:', err);
@@ -103,6 +104,38 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
       } catch (error) {
         console.error('Failed to upload pending file:', error);
       }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        categoryName: 'Vacina',
+        title: `${metadata.vacina} (${metadata.dose})` || 'Vacina',
+        eventDate: toUTCISOString(eventDate),
+        metadata: metadata
+      };
+
+      if (event?.id) {
+        await api.put(`/events/${event.id}`, payload);
+        onSuccess();
+      } else {
+        const response = await api.post('/events', payload);
+        const newEventId = response.data.data.id;
+        if (pendingFiles.length > 0) {
+          await uploadPendingFiles(newEventId);
+        }
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      setError('Erro ao salvar vacina. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -156,8 +189,8 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
   const handleDeleteEvent = () => {
     setModalConfig({
       isOpen: true,
-      title: 'Excluir exame',
-      message: 'Tem certeza que deseja excluir este exame?',
+      title: 'Excluir vacina',
+      message: 'Tem certeza que deseja excluir este registro?',
       onConfirm: async () => {
         setLoading(true);
         try {
@@ -165,7 +198,7 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
           onSuccess();
         } catch (err) {
           console.error('Error deleting:', err);
-          alert('Falha ao excluir exame.');
+          alert('Falha ao excluir vacina.');
         } finally {
           setLoading(false);
           setModalConfig(null);
@@ -174,46 +207,14 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const payload = {
-        categoryName: 'Exame Médico',
-        title: metadata.descricao || 'Exame Médico',
-        eventDate: toUTCISOString(eventDate),
-        metadata: metadata
-      };
-
-      if (event?.id) {
-        await api.put(`/events/${event.id}`, payload);
-        onSuccess();
-      } else {
-        const response = await api.post('/events', payload);
-        const newEventId = response.data.data.id;
-        if (pendingFiles.length > 0) {
-          await uploadPendingFiles(newEventId);
-        }
-        onSuccess();
-      }
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      setError('Erro ao salvar exame. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <div className={styles.categoryIcon}>
-            <Stethoscope size={20} color="#fff" />
+          <div className={styles.categoryIcon} style={{ background: '#ec4899' }}>
+            <Syringe size={20} color="#fff" />
           </div>
-          <h2 className={styles.modalTitle}>{event ? 'Editar Exame' : 'Novo Exame'}</h2>
+          <h2 className={styles.modalTitle}>{event ? 'Editar Vacina' : 'Nova Vacina'}</h2>
           <button onClick={onClose} className={styles.closeButton}>
             <X size={20} />
           </button>
@@ -231,56 +232,84 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
           />
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label}>Descrição do Exame</label>
+            <label className={styles.label}>Vacina</label>
             <input
               type="text"
               className={styles.input}
-              placeholder="Ex: Hemograma"
-              value={metadata.descricao}
-              onChange={e => setMetadata({...metadata, descricao: e.target.value})}
-              list="descricoes-list"
+              placeholder="Ex: Gripe (Influenza)"
+              value={metadata.vacina}
+              onChange={e => setMetadata({...metadata, vacina: e.target.value})}
+              list="vacinas-list"
               required
             />
-            <datalist id="descricoes-list">
-              {suggestions.descricoes.map(s => <option key={s} value={s} />)}
+            <datalist id="vacinas-list">
+              {suggestions.vacinas.map(s => <option key={s} value={s} />)}
             </datalist>
+          </div>
+
+          <div className={styles.grid}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Dose</label>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Ex: Reforço anual"
+                value={metadata.dose}
+                onChange={e => setMetadata({...metadata, dose: e.target.value})}
+                list="doses-list"
+              />
+              <datalist id="doses-list">
+                {suggestions.doses.map(s => <option key={s} value={s} />)}
+              </datalist>
+            </div>
+
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>
+                <MapPin size={14} /> Local / Estabelecimento
+              </label>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Ex: Posto de Saúde"
+                value={metadata.estabelecimento}
+                onChange={e => setMetadata({...metadata, estabelecimento: e.target.value})}
+                list="estabelecimentos-list"
+              />
+              <datalist id="estabelecimentos-list">
+                {suggestions.estabelecimentos.map(s => <option key={s} value={s} />)}
+              </datalist>
+            </div>
           </div>
 
           <div className={styles.fieldGroup}>
             <label className={styles.label}>
-              <Stethoscope size={14} /> Médico
+              <Hash size={14} /> Lote (opcional)
             </label>
             <input
               type="text"
               className={styles.input}
-              placeholder="Ex: Dra. Ana Souza"
-              value={metadata.medico}
-              onChange={e => setMetadata({...metadata, medico: e.target.value})}
-              list="medicos-list"
-              required
+              placeholder="Ex: ABC12345"
+              value={metadata.lote}
+              onChange={e => setMetadata({...metadata, lote: e.target.value})}
             />
-            <datalist id="medicos-list">
-              {suggestions.medicos.map(s => <option key={s} value={s} />)}
-            </datalist>
           </div>
-          
+
           <div className={styles.fieldGroup}>
             <label className={styles.label}>
-              <FileText size={14} /> Resumo do Laudo
+              <FileText size={14} /> Observações
             </label>
             <textarea
               className={styles.input}
-              placeholder="Descreva brevemente o resultado..."
-              value={metadata.laudo}
-              onChange={e => setMetadata({...metadata, laudo: e.target.value})}
-              rows={4}
+              placeholder="Alguma reação ou observação importante..."
+              value={metadata.observacoes}
+              onChange={e => setMetadata({...metadata, observacoes: e.target.value})}
+              rows={2}
             />
           </div>
 
           <div className={styles.fieldGroup}>
             <label className={styles.label}>Anexos</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
-              {/* Existing Attachments */}
               {attachments.map((a: any) => (
                 <div key={a.id} style={{ display: 'flex', flexDirection: 'column', padding: '8px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -302,7 +331,6 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
                 </div>
               ))}
 
-              {/* Pending Attachments */}
               {pendingFiles.map((pf) => (
                 <div key={pf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: '#fffbeb', borderRadius: '6px', border: '1px solid #fde68a', gap: '4px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -324,7 +352,7 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
               onFileSelected={handleFileSelected}
             />
           </div>
-          
+
           <div className={styles.actions}>
             {event?.id && (
               <button type="button" onClick={handleDeleteEvent} className={styles.deleteButton} disabled={loading}>
@@ -338,7 +366,7 @@ export default function MedicalExamForm({ onClose, onSuccess, event }: MedicalEx
             <button type="submit" disabled={loading} className={styles.saveButton}>
               {loading ? 'Salvando...' : (
                 <>
-                  <Save size={18} /> Salvar Exame
+                  <Save size={18} /> Salvar Registro
                 </>
               )}
             </button>
