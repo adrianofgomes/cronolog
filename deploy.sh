@@ -36,6 +36,28 @@ echo -e "${BLUE}   Pular Testes: $SKIP_TESTS${NC}"
 echo -e "${BLUE}   Deploy Frontend: $DEPLOY_FRONT${NC}"
 echo -e "${BLUE}   Deploy Backend: $DEPLOY_BACK${NC}"
 
+# 0. Incremento de Build
+echo -e "\n${BLUE}🔢 Incrementando build...${NC}"
+if [ -f "version.json" ]; then
+    # Usando Python para manipular o JSON de forma robusta e segura
+    python3 -c "
+import json, datetime
+try:
+    with open('version.json', 'r') as f:
+        data = json.load(f)
+    data['build'] = data.get('build', 0) + 1
+    data['date'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    with open('version.json', 'w') as f:
+        json.dump(data, f, indent=4)
+    print(f'✅ Build incrementado para: {data[\"build\"]} ({data[\"date\"]})')
+except Exception as e:
+    print(f'❌ Erro ao atualizar version.json: {e}')
+    exit(1)
+"
+else
+    echo -e "${RED}⚠️ Arquivo version.json não encontrado. Pulando incremento.${NC}"
+fi
+
 # 1. Execução de Testes
 if [ "$SKIP_TESTS" == "false" ]; then
     echo -e "\n${BLUE}🧪 [1/3] Executando testes de integridade...${NC}"

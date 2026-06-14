@@ -78,7 +78,7 @@ class LoginAction extends Action
     private function verifyGoogleToken(string $idToken): ?array
     {
         // Support for test tokens in non-production environments
-        if ($this->settings->get('displayErrorDetails') === true) {
+        if ($this->settings->get('enableTestTokens') === true) {
             if ($idToken === 'test-token' || $idToken === 'new-user-token' || str_contains($idToken, '.signature')) {
                 // If it's our fake test token from PHPUnit
                 if (str_contains($idToken, '.signature')) {

@@ -1,0 +1,11 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="150" height="150">
+  <!-- Círculo incompleto ajustado (Crono) -->
+  <path d="M 82,30 A 35,35 0 1 0 82,70" fill="none" stroke="#333" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Ponto Central -->
+  <circle cx="67" cy="50" r="4" fill="#0047AB"/>
+  
+  <!-- Ponteiros estilizados como "L" (Log) -->
+  <line x1="52" y1="25" x2="52" y2="50" stroke="#0047AB" stroke-width="8" stroke-linecap="round"/>
+  <line x1="52" y1="50" x2="67" y2="50" stroke="#0047AB" stroke-width="8" stroke-linecap="round"/>
+</svg>

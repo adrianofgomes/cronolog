@@ -171,3 +171,82 @@
   background: #ccc;
   cursor: not-allowed;
 }
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.infoCard {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.infoIcon {
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.infoContent label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.infoContent p {
+  margin: 2px 0;
+  font-weight: 500;
+  color: #111827;
+}
+
+.infoContent small {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.statusOk {
+  color: #059669 !important;
+}
+
+.statusError {
+  color: #dc2626 !important;
+}
+
+.securityBadges {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgeSuccess {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badgeWarning {
+  background-color: #fef3c7;
+  color: #92400e;
+}

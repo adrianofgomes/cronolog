@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { ArrowLeft, UserCheck, FileWarning, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info } from 'lucide-react';
 import Link from 'next/link';
 import styles from './admin.module.css';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
+import { toDateTimeLocal } from '@/lib/dateUtils';
 
 interface PendingUser {
   id: number | null;
@@ -18,11 +19,27 @@ interface PendingUser {
   status: string;
 }
 
+interface SystemInfo {
+  app_version: string;
+  app_build: number;
+  app_date: string;
+  php_version: string;
+  db_status: string;
+  server_software: string;
+  os: string;
+  debug_mode: boolean;
+  test_tokens: boolean;
+  max_upload_size: string;
+  post_max_size: string;
+  memory_limit: string;
+}
+
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [orphanedFiles, setOrphanedFiles] = useState<string[]>([]);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -31,12 +48,14 @@ export default function AdminPage() {
   const fetchAdminData = async () => {
     try {
       setIsFetching(true);
-      const [usersRes, filesRes] = await Promise.all([
+      const [usersRes, filesRes, infoRes] = await Promise.all([
         api.get('/users/admin/pending'),
-        api.get('/users/admin/attachments/orphaned')
+        api.get('/users/admin/attachments/orphaned'),
+        api.get('/users/admin/system-info')
       ]);
       setPendingUsers(usersRes.data.data || []);
       setOrphanedFiles(filesRes.data.data || []);
+      setSystemInfo(infoRes.data.data || null);
       setError(null);
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -111,6 +130,58 @@ export default function AdminPage() {
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {systemInfo && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Settings size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+            Informações do Sistema
+          </h2>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}><Info size={20} /></div>
+              <div className={styles.infoContent}>
+                <label>Aplicação</label>
+                <p>v{systemInfo.app_version} (Build {systemInfo.app_build})</p>
+                <small>Último deploy: {toDateTimeLocal(new Date(systemInfo.app_date)).replace('T', ' ')}</small>
+              </div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}><Server size={20} /></div>
+              <div className={styles.infoContent}>
+                <label>Servidor</label>
+                <p>PHP {systemInfo.php_version}</p>
+                <small>{systemInfo.os} - {systemInfo.server_software}</small>
+              </div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}><Database size={20} /></div>
+              <div className={styles.infoContent}>
+                <label>Banco de Dados</label>
+                <p className={systemInfo.db_status === 'Conectado' ? styles.statusOk : styles.statusError}>
+                  {systemInfo.db_status}
+                </p>
+              </div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}><Settings size={20} /></div>
+              <div className={styles.infoContent}>
+                <label>Limites PHP</label>
+                <p>Upload: {systemInfo.max_upload_size}</p>
+                <small>Memória: {systemInfo.memory_limit}</small>
+              </div>
+            </div>
+          </div>
+          <div className={styles.securityBadges}>
+             <span className={`${styles.badge} ${systemInfo.debug_mode ? styles.badgeWarning : styles.badgeSuccess}`}>
+               Debug: {systemInfo.debug_mode ? 'Ativado' : 'Desativado'}
+             </span>
+             <span className={`${styles.badge} ${systemInfo.test_tokens ? styles.badgeWarning : styles.badgeSuccess}`}>
+               Test Tokens: {systemInfo.test_tokens ? 'Ativado' : 'Desativado'}
+             </span>
+          </div>
+        </section>
+      )}
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Usuários Aguardando Aprovação</h2>

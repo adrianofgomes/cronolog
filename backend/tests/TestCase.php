@@ -27,6 +27,45 @@ abstract class TestCase extends PHPUnitTestCase
         // Settings
         $settings = require __DIR__ . '/../app/settings.php';
         $settings($containerBuilder);
+        
+        // Force enable test tokens for tests
+        $containerBuilder->addDefinitions([
+            \App\Application\Settings\SettingsInterface::class => function (\Psr\Container\ContainerInterface $c) {
+                // Get original settings
+                $settingsData = (require __DIR__ . '/../app/settings.php');
+                // We need to build a temporary container to get the original settings if we want to be surgical,
+                // but since we want to OVERRIDE, we can just recreate the Settings object with our tweak.
+                
+                // Redefining the factory to ensure test tokens are enabled
+                $data = [
+                    'displayErrorDetails' => true,
+                    'logError'            => false,
+                    'logErrorDetails'     => false,
+                    'enableTestTokens'    => true, // CRITICAL FOR TESTS
+                    'logger' => [
+                        'name' => 'slim-app',
+                        'path' => 'php://stdout',
+                        'level' => \Monolog\Logger::DEBUG,
+                    ],
+                    'db' => [
+                        'host' => 'localhost',
+                        'port' => '3306',
+                        'database' => 'cronolog_test',
+                        'username' => 'root',
+                        'password' => '',
+                        'charset' => 'utf8mb4',
+                    ],
+                    'google' => [
+                        'client_id' => 'test-client-id',
+                    ],
+                    'jwt' => [
+                        'secret' => 'test_secret',
+                        'expires_days' => 30,
+                    ],
+                ];
+                return new \App\Application\Settings\Settings($data);
+            },
+        ]);
 
         // Dependencies
         $dependencies = require __DIR__ . '/../app/dependencies.php';

@@ -29,6 +29,7 @@ cp -vR db "$CORE_DIR/"
 cp -v composer.json "$CORE_DIR/"
 cp -v composer.lock "$CORE_DIR/"
 cp -v phinx.php "$CORE_DIR/"
+cp -v ../version.json "$CORE_DIR/"
 
 echo "📂 Criando pasta de logs..."
 mkdir -p "$CORE_DIR/logs"

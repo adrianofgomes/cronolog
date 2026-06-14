@@ -11,10 +11,14 @@ return function (ContainerBuilder $containerBuilder) {
     // Global Settings Object
     $containerBuilder->addDefinitions([
         SettingsInterface::class => function () {
+            $debug = ($_ENV['APP_DEBUG'] ?? 'false') === 'true';
+            $testTokens = ($_ENV['ENABLE_TEST_TOKENS'] ?? 'false') === 'true';
+
             return new Settings([
-                'displayErrorDetails' => true, // Should be set to false in production
-                'logError'            => false,
-                'logErrorDetails'     => false,
+                'displayErrorDetails' => $debug,
+                'logError'            => true,
+                'logErrorDetails'     => $debug,
+                'enableTestTokens'    => $testTokens,
                 'logger' => [
                     'name' => 'slim-app',
                     'path' => isset($_ENV['docker']) ? 'php://stdout' : __DIR__ . '/../logs/app.log',

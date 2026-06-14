@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
 });
 
 // Add a request interceptor to include the Bearer token
@@ -27,7 +27,7 @@ api.interceptors.response.use(
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/cronolog/login/';
+        window.location.href = '/login/';
       }
     }
     return Promise.reject(error);

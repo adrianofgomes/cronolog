@@ -85,7 +85,7 @@ class AuthMiddleware implements MiddlewareInterface
     private function verifyLocalToken(string $token): ?array
     {
         // Support for test tokens in non-production environments
-        if ($this->settings->get('displayErrorDetails') === true) {
+        if ($this->settings->get('enableTestTokens') === true) {
             if ($token === 'test-token' || $token === 'new-user-token') {
                 return [
                     'sub' => $token === 'test-token' ? '123456789' : '987654321',

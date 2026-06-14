@@ -76,6 +76,7 @@ return function (App $app) {
             $adminGroup->post('/{google_id}/approve', ApproveUserAction::class);
             $adminGroup->get('/attachments/orphaned', \App\Application\Actions\Admin\ListOrphanedFilesAction::class);
             $adminGroup->delete('/attachments/orphaned/{filename}', \App\Application\Actions\Admin\DeleteOrphanedFileAction::class);
+            $adminGroup->get('/system-info', \App\Application\Actions\Admin\SystemInfoAction::class);
         })->add(AdminMiddleware::class);
         
     })->add(AuthMiddleware::class);
