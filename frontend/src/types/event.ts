@@ -21,6 +21,10 @@ export interface Event {
   source?: 'manual' | 'ai_voice' | 'ai_text';
   rawInput?: string;
   attachments?: any[];
+  status?: 'pending' | 'completed' | 'cancelled';
+  isRecurring?: boolean;
+  recurrenceInterval?: number;
+  recurrenceType?: 'days' | 'weeks' | 'months' | 'years';
 }
 
 export interface RefuelingMetadata {

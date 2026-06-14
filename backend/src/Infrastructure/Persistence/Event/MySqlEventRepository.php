@@ -18,7 +18,9 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
                 UPDATE events 
                 SET profile_id = :profile_id, category_id = :category_id, title = :title, 
                     event_date = :event_date, description = :description, metadata = :metadata, 
-                    tags = :tags, source = :source, raw_input = :raw_input
+                    tags = :tags, source = :source, raw_input = :raw_input,
+                    status = :status, is_recurring = :is_recurring, 
+                    recurrence_interval = :recurrence_interval, recurrence_type = :recurrence_type
                 WHERE id = :id AND user_id = :user_id
             ";
             $params = [
@@ -33,6 +35,10 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
                 'tags' => json_encode($event->getTags()),
                 'source' => $event->getSource(),
                 'raw_input' => $event->getRawInput(),
+                'status' => $event->getStatus(),
+                'is_recurring' => $event->isRecurring() ? 1 : 0,
+                'recurrence_interval' => $event->getRecurrenceInterval(),
+                'recurrence_type' => $event->getRecurrenceType(),
             ];
             $statement = $this->connection->prepare($query);
             $statement->execute($params);
@@ -40,8 +46,8 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         }
 
         $query = "
-            INSERT INTO events (user_id, profile_id, category_id, title, event_date, description, metadata, tags, source, raw_input)
-            VALUES (:user_id, :profile_id, :category_id, :title, :event_date, :description, :metadata, :tags, :source, :raw_input)
+            INSERT INTO events (user_id, profile_id, category_id, title, event_date, description, metadata, tags, source, raw_input, status, is_recurring, recurrence_interval, recurrence_type)
+            VALUES (:user_id, :profile_id, :category_id, :title, :event_date, :description, :metadata, :tags, :source, :raw_input, :status, :is_recurring, :recurrence_interval, :recurrence_type)
         ";
         $params = [
             'user_id' => $event->getUserId(),
@@ -54,6 +60,10 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
             'tags' => json_encode($event->getTags()),
             'source' => $event->getSource(),
             'raw_input' => $event->getRawInput(),
+            'status' => $event->getStatus(),
+            'is_recurring' => $event->isRecurring() ? 1 : 0,
+            'recurrence_interval' => $event->getRecurrenceInterval(),
+            'recurrence_type' => $event->getRecurrenceType(),
         ];
         $statement = $this->connection->prepare($query);
         $statement->execute($params);
@@ -75,7 +85,7 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         return $row ? $this->mapRowToEvent($row) : null;
     }
 
-    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null): array
+    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null, ?string $status = null): array
     {
         $query = "
             SELECT e.*, c.name as category_name 
@@ -93,6 +103,11 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         if ($categoryName !== null) {
             $query .= " AND c.name = :category_name";
             $params['category_name'] = $categoryName;
+        }
+
+        if ($status !== null) {
+            $query .= " AND e.status = :status";
+            $params['status'] = $status;
         }
 
         $query .= " ORDER BY e.event_date DESC";
@@ -149,7 +164,11 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
             $row['source'],
             $row['raw_input'],
             $row['category_name'] ?? null,
-            $attachments
+            $attachments,
+            $row['status'],
+            (bool) $row['is_recurring'],
+            $row['recurrence_interval'] ? (int) $row['recurrence_interval'] : null,
+            $row['recurrence_type']
         );
     }
 }

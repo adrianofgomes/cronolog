@@ -14,13 +14,16 @@ import VaccineForm from '@/components/events/VaccineForm';
 import MedicationForm from '@/components/events/MedicationForm';
 import AppointmentForm from '@/components/events/AppointmentForm';
 import GeneralEventForm from '@/components/events/GeneralEventForm';
+import BillToPayForm from '@/components/events/BillToPayForm';
 import EventTypeSelectorModal from '@/components/events/EventTypeSelectorModal';
 import Timeline from '@/components/events/Timeline';
+import UpcomingEventsList from '@/components/events/UpcomingEventsList';
 import { Event } from '@/types/event';
 
 export default function HomePage() {
   const { user, logout, isLoading, refreshUserStatus } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [showEventForm, setShowEventForm] = useState(false);
   const [showMedicalForm, setShowMedicalForm] = useState(false);
@@ -29,6 +32,7 @@ export default function HomePage() {
   const [showMedicationForm, setShowMedicationForm] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [showGeneralForm, setShowGeneralForm] = useState(false);
+  const [showBillForm, setShowBillForm] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +52,8 @@ export default function HomePage() {
       setShowAppointmentForm(true);
     } else if (event.categoryName === 'Geral') {
       setShowGeneralForm(true);
+    } else if (event.categoryName === 'Conta a Pagar') {
+      setShowBillForm(true);
     } else {
       setShowEventForm(true);
     }
@@ -74,6 +80,8 @@ export default function HomePage() {
       setShowMaintenanceForm(true);
     } else if (type === 'general') {
       setShowGeneralForm(true);
+    } else if (type === 'bill') {
+      setShowBillForm(true);
     } else {
       setShowEventForm(true);
     }
@@ -87,6 +95,7 @@ export default function HomePage() {
     setShowMedicationForm(false);
     setShowAppointmentForm(false);
     setShowGeneralForm(false);
+    setShowBillForm(false);
     setShowSelector(false);
     setEditingEvent(null);
   };
@@ -94,8 +103,19 @@ export default function HomePage() {
   const fetchEvents = async () => {
     if (user?.status !== 'active') return;
     try {
-      const response = await api.get('/events');
-      setEvents(response.data.data || []);
+      const [completedRes, pendingRes] = await Promise.all([
+        api.get('/events', { params: { status: 'completed' } }),
+        api.get('/events', { params: { status: 'pending' } })
+      ]);
+      setEvents(completedRes.data.data || []);
+      
+      // For upcoming, we take only the next 5 sorted by date (the API returns DESC, so we might need to sort ASC or the repository already handles it)
+      // Actually MySqlEventRepository handles DESC, for pending we probably want ASC (closer dates first)
+      const pending = pendingRes.data.data || [];
+      const sortedPending = [...pending].sort((a, b) => 
+        new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+      );
+      setUpcomingEvents(sortedPending.slice(0, 5));
     } catch (err) {
       console.error('Error fetching events:', err);
       setError('Não foi possível carregar os eventos.');
@@ -137,7 +157,10 @@ export default function HomePage() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.logo}>Cronolog</div>
+        <div className={styles.logo}>
+          <img src="/cronolog_logo.svg" alt="Cronolog Logo" className={styles.logoImage} />
+          <span>Cronolog</span>
+        </div>
         <div className={styles.userInfo}>
           {user.isAdmin && (
             <Link href="/admin" className={styles.adminLink} title="Painel Administrativo">
@@ -193,14 +216,18 @@ export default function HomePage() {
             </p>
           </div>
           {!isPending && !isBlocked && (
-            <button
-              className={styles.addEventButton}
-              onClick={() => handleAddNew()}
-            >
-              <Plus size={20} /> Novo Lançamento
-            </button>
+            <div className={styles.welcomeActions}>
+              <Link href="/scheduled" className={styles.scheduledLink}>
+                Agendados
+              </Link>
+              <button
+                className={styles.addEventButton}
+                onClick={() => handleAddNew()}
+              >
+                <Plus size={20} /> Novo Lançamento
+              </button>
+            </div>
           )}
-
         </section>
 
         <section className={styles.dashboardGrid}>
@@ -238,7 +265,10 @@ export default function HomePage() {
                 As atividades aparecerão aqui assim que seu acesso for liberado.
               </div>
             ) : (
-              <Timeline events={events} onEdit={handleEdit} />
+              <>
+                <UpcomingEventsList events={upcomingEvents} onEdit={handleEdit} />
+                <Timeline events={events} onEdit={handleEdit} />
+              </>
             )}
           </div>
         </section>
@@ -306,6 +336,16 @@ export default function HomePage() {
       )}
       {showGeneralForm && (
         <GeneralEventForm
+          onClose={handleCloseForm} 
+          onSuccess={() => {
+            handleCloseForm();
+            fetchEvents();
+          }} 
+          event={editingEvent}
+        />
+      )}
+      {showBillForm && (
+        <BillToPayForm
           onClose={handleCloseForm} 
           onSuccess={() => {
             handleCloseForm();

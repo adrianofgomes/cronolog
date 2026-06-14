@@ -67,6 +67,10 @@ class CreateEventAction extends Action
         $tags = $data['tags'] ?? [];
         $source = $data['source'] ?? 'manual';
         $rawInput = $data['rawInput'] ?? null;
+        $status = $data['status'] ?? 'completed';
+        $isRecurring = isset($data['isRecurring']) ? (bool) $data['isRecurring'] : false;
+        $recurrenceInterval = isset($data['recurrenceInterval']) ? (int) $data['recurrenceInterval'] : null;
+        $recurrenceType = $data['recurrenceType'] ?? null;
 
         $event = new Event(
             null,
@@ -79,7 +83,13 @@ class CreateEventAction extends Action
             $metadata,
             $tags,
             $source,
-            $rawInput
+            $rawInput,
+            null,
+            [],
+            $status,
+            $isRecurring,
+            $recurrenceInterval,
+            $recurrenceType
         );
 
         $eventId = $this->eventRepository->save($event);

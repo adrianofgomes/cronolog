@@ -22,6 +22,10 @@ class Event implements JsonSerializable
     private ?string $rawInput;
     private ?string $categoryName;
     private array $attachments = [];
+    private string $status;
+    private bool $isRecurring;
+    private ?int $recurrenceInterval;
+    private ?string $recurrenceType;
 
     public function __construct(
         ?int $id,
@@ -36,7 +40,11 @@ class Event implements JsonSerializable
         string $source = 'manual',
         ?string $rawInput = null,
         ?string $categoryName = null,
-        array $attachments = []
+        array $attachments = [],
+        string $status = 'completed',
+        bool $isRecurring = false,
+        ?int $recurrenceInterval = null,
+        ?string $recurrenceType = null
     ) {
         $this->id = $id;
         $this->userId = $userId;
@@ -51,6 +59,10 @@ class Event implements JsonSerializable
         $this->rawInput = $rawInput;
         $this->categoryName = $categoryName;
         $this->attachments = $attachments;
+        $this->status = $status;
+        $this->isRecurring = $isRecurring;
+        $this->recurrenceInterval = $recurrenceInterval;
+        $this->recurrenceType = $recurrenceType;
     }
 
     public function getId(): ?int
@@ -118,6 +130,26 @@ class Event implements JsonSerializable
         return $this->attachments;
     }
 
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function isRecurring(): bool
+    {
+        return $this->isRecurring;
+    }
+
+    public function getRecurrenceInterval(): ?int
+    {
+        return $this->recurrenceInterval;
+    }
+
+    public function getRecurrenceType(): ?string
+    {
+        return $this->recurrenceType;
+    }
+
     public function setCategoryId(int $categoryId): void
     {
         $this->categoryId = $categoryId;
@@ -158,6 +190,26 @@ class Event implements JsonSerializable
         $this->attachments = $attachments;
     }
 
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function setIsRecurring(bool $isRecurring): void
+    {
+        $this->isRecurring = $isRecurring;
+    }
+
+    public function setRecurrenceInterval(?int $recurrenceInterval): void
+    {
+        $this->recurrenceInterval = $recurrenceInterval;
+    }
+
+    public function setRecurrenceType(?string $recurrenceType): void
+    {
+        $this->recurrenceType = $recurrenceType;
+    }
+
     #[\ReturnTypeWillChange]
     public function jsonSerialize(): array
     {
@@ -175,6 +227,10 @@ class Event implements JsonSerializable
             'source' => $this->source,
             'rawInput' => $this->rawInput,
             'attachments' => $this->attachments,
+            'status' => $this->status,
+            'isRecurring' => $this->isRecurring,
+            'recurrenceInterval' => $this->recurrenceInterval,
+            'recurrenceType' => $this->recurrenceType,
         ];
     }
 }

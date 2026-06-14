@@ -72,8 +72,66 @@ class UpdateEventAction extends Action
             $event->setTags($data['tags']);
         }
 
+        $oldStatus = $event->getStatus();
+        if (isset($data['status'])) {
+            $event->setStatus($data['status']);
+        }
+
+        if (isset($data['isRecurring'])) {
+            $event->setIsRecurring((bool) $data['isRecurring']);
+        }
+
+        if (isset($data['recurrenceInterval'])) {
+            $event->setRecurrenceInterval((int) $data['recurrenceInterval']);
+        }
+
+        if (isset($data['recurrenceType'])) {
+            $event->setRecurrenceType($data['recurrenceType']);
+        }
+
         $this->eventRepository->save($event);
+
+        // Recurrence Logic: If status changed from pending to completed and it's recurring
+        if ($oldStatus === 'pending' && $event->getStatus() === 'completed' && $event->isRecurring()) {
+            $this->createNextRecurringEvent($event);
+        }
         
         return $this->respondWithData(['message' => 'Event updated successfully.']);
+    }
+
+    private function createNextRecurringEvent(Event $event): void
+    {
+        $interval = $event->getRecurrenceInterval();
+        $type = $event->getRecurrenceType();
+        
+        if (!$interval || !$type) {
+            return;
+        }
+
+        $nextDate = clone $event->getEventDate();
+        $modifyString = "+{$interval} {$type}";
+        $nextDate->modify($modifyString);
+
+        $nextEvent = new Event(
+            null,
+            $event->getUserId(),
+            $event->getCategoryId(),
+            $event->getTitle(),
+            $nextDate,
+            $event->getProfileId(),
+            $event->getDescription(),
+            $event->getMetadata(),
+            $event->getTags(),
+            $event->getSource(),
+            $event->getRawInput(),
+            null,
+            [],
+            'pending',
+            true,
+            $interval,
+            $type
+        );
+
+        $this->eventRepository->save($nextEvent);
     }
 }

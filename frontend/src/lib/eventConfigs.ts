@@ -1,4 +1,4 @@
-import { Fuel, Wrench, Stethoscope, Heart, Syringe, Pill, ClipboardList, Tag } from 'lucide-react';
+import { Fuel, Wrench, Stethoscope, Heart, Syringe, Pill, ClipboardList, Tag, Banknote } from 'lucide-react';
 
 export interface EventType {
   id: string;
@@ -67,6 +67,18 @@ export const EVENT_GROUPS: EventGroup[] = [
     ]
   },
   {
+    name: 'Financeiro',
+    types: [
+      { 
+        id: 'bill', 
+        label: 'Conta a Pagar', 
+        description: 'Lembretes de pagamentos, boletos e contas recorrentes.', 
+        icon: Banknote, 
+        color: '#059669' 
+      },
+    ]
+  },
+  {
     name: 'Outros',
     types: [
       { 
@@ -88,6 +100,7 @@ export const CATEGORY_CONFIGS: Record<string, { icon: any, color: string }> = {
   'Vacina': { icon: Syringe, color: '#ec4899' },
   'Remédios': { icon: Pill, color: '#ef4444' },
   'Consulta': { icon: ClipboardList, color: '#8b5cf6' },
+  'Conta a Pagar': { icon: Banknote, color: '#059669' },
   // Legacy or default mappings
   'Saúde': { icon: Heart, color: '#ef4444' },
   'Geral': { icon: Tag, color: '#6b7280' }

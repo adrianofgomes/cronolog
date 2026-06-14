@@ -25,11 +25,13 @@ class ListEventsAction extends Action
         $params = $this->request->getQueryParams();
         $categoryId = $params['categoryId'] ?? null;
         $categoryName = $params['categoryName'] ?? null;
+        $status = $params['status'] ?? null;
 
         $events = $this->eventRepository->findByUser(
             $user->getId(), 
             $categoryId ? (int) $categoryId : null,
-            $categoryName
+            $categoryName,
+            $status
         );
 
         return $this->respondWithData($events);

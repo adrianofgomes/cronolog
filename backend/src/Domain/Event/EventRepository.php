@@ -29,7 +29,8 @@ interface EventRepository
      * @param int $userId
      * @param int|null $categoryId
      * @param string|null $categoryName
+     * @param string|null $status
      * @return Event[]
      */
-    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null): array;
+    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null, ?string $status = null): array;
 }
