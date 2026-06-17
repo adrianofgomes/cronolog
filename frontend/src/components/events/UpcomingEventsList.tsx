@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
-import { Event } from '@/types/event';
+import React, { useState, useEffect } from 'react';
+import { Event, Category } from '@/types/event';
 import styles from './Timeline.module.css';
-import { getCategoryConfig } from '@/lib/eventConfigs';
 import { CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { format, isBefore, isToday, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getIconComponent } from '@/lib/iconUtils';
+import api from '@/lib/api';
 
 interface UpcomingEventsListProps {
   events: Event[];
@@ -14,6 +15,20 @@ interface UpcomingEventsListProps {
 }
 
 export default function UpcomingEventsList({ events, onEdit }: UpcomingEventsListProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        setCategories(response.data.data || []);
+      } catch (err) {
+        console.error('Error fetching categories for upcoming list:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   if (events.length === 0) return null;
 
   return (
@@ -21,8 +36,9 @@ export default function UpcomingEventsList({ events, onEdit }: UpcomingEventsLis
       <h2 className={styles.sectionTitle}>Próximos Compromissos</h2>
       <div className={styles.upcomingList}>
         {events.map((event) => {
-          const config = getCategoryConfig(event.categoryName || 'Geral');
-          const Icon = config.icon;
+          const category = categories.find(c => c.id === event.categoryId);
+          const color = category?.color || '#6b7280';
+          const Icon = getIconComponent(category?.icon || 'tag');
           const eventDate = new Date(event.eventDate);
           
           const overdue = isBefore(eventDate, startOfDay(new Date())) && !isToday(eventDate);
@@ -36,7 +52,7 @@ export default function UpcomingEventsList({ events, onEdit }: UpcomingEventsLis
             >
               <div 
                 className={styles.upcomingIcon} 
-                style={{ backgroundColor: `${config.color}15`, color: config.color }}
+                style={{ backgroundColor: `${color}15`, color: color }}
               >
                 <Icon size={20} />
               </div>

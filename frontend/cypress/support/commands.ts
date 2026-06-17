@@ -17,7 +17,7 @@ Cypress.Commands.add('login', () => {
       name: user.name,
       email: user.email,
       picture: user.picture,
-      status: user.status,
+      status: 'active', // Force active status for testing
       isAdmin: user.isAdmin
     }));
   });

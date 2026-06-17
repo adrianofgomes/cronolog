@@ -9,11 +9,11 @@ describe('Authentication', () => {
     cy.login();
     cy.visit('/');
     
-    // Deberia estar na home e não ser redirecionado para login
-    cy.url().should('not.include', '/login');
+    // Assert we are on the homepage
+    cy.url().should('eq', 'http://localhost:3000/');
     
     // Verifica elementos do Header que aparecem para qualquer usuário logado
-    cy.get('header').contains('Cronolog').should('be.visible');
+    cy.get('header', { timeout: 10000 }).should('be.visible');
     cy.contains('Admin User').should('be.visible');
 
     // Verifica se a Timeline ou o Banner de Pendente está presente

@@ -2,6 +2,9 @@
 
 # Script para rodar testes Cypress garantindo que os serviços estejam ativos
 
+echo "📦 Instalando dependências de sistema para Cypress..."
+sudo apt-get update && sudo apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+
 FRONTEND_URL="http://localhost:3000"
 BACKEND_URL="http://localhost:8080/status"
 
@@ -29,7 +32,7 @@ fi
 if [ "$(check_service $FRONTEND_URL)" != "200" ]; then
   echo "🚀 Frontend não detectado em :3000. Iniciando..."
   cd frontend
-  npm run dev > ../frontend_dev.log 2>&1 &
+  NEXT_PUBLIC_API_URL="http://localhost:8080" npm run dev > ../frontend_dev.log 2>&1 &
   FRONTEND_PID=$!
   cd ..
   echo "⏳ Aguardando frontend (PID $FRONTEND_PID)..."

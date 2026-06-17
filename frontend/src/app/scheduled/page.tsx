@@ -4,56 +4,41 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { ChevronLeft, Filter, Calendar as CalendarIcon, Search, AlertTriangle } from 'lucide-react';
+import { toDateTimeLocal } from '@/lib/dateUtils';
 import styles from './scheduled.module.css';
-import dashboardStyles from '../dashboard.module.css';
-import BillToPayForm from '@/components/events/BillToPayForm';
-import { Event } from '@/types/event';
-import { getCategoryConfig } from '@/lib/eventConfigs';
-import { format, isBefore, isToday, startOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ChevronLeft, Calendar, CheckCircle, Clock, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { Event, Category } from '@/types/event';
+import DynamicEventForm from '@/components/events/DynamicEventForm';
 
-export default function ScheduledEventsPage() {
+export default function ScheduledPage() {
   const { user, isLoading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [showBillForm, setShowBillForm] = useState(false);
-  
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const router = useRouter();
 
-  const fetchScheduledEvents = async () => {
-    if (!user) return;
-    setLoading(true);
+  const fetchData = async () => {
     try {
-      const response = await api.get('/events', { 
-        params: { 
-          status: 'pending'
-        } 
-      });
-      let fetchedEvents = response.data.data || [];
+      const [eventsRes, categoriesRes] = await Promise.all([
+        api.get('/events', { params: { status: 'pending' } }),
+        api.get('/categories')
+      ]);
       
-      // Sort ASC (closer dates first)
-      fetchedEvents.sort((a: Event, b: Event) => 
+      const pendingEvents = eventsRes.data.data || [];
+      const sortedEvents = [...pendingEvents].sort((a, b) => 
         new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
       );
-
-      // Client-side filtering for simplicity, or we could update API to handle date range
-      if (startDate) {
-        const start = new Date(startDate).getTime();
-        fetchedEvents = fetchedEvents.filter((e: Event) => new Date(e.eventDate).getTime() >= start);
-      }
-      if (endDate) {
-        const end = new Date(endDate).getTime();
-        fetchedEvents = fetchedEvents.filter((e: Event) => new Date(e.eventDate).getTime() <= end);
-      }
-
-      setEvents(fetchedEvents);
+      
+      setEvents(sortedEvents);
+      setCategories(categoriesRes.data.data || []);
     } catch (err) {
-      console.error('Error fetching scheduled events:', err);
+      console.error('Error fetching data:', err);
+      setError('Falha ao carregar eventos agendados.');
     } finally {
       setLoading(false);
     }
@@ -66,159 +51,128 @@ export default function ScheduledEventsPage() {
   }, [user, isLoading, router]);
 
   useEffect(() => {
-    if (user) {
-      fetchScheduledEvents();
+    if (user && user.status === 'active') {
+      fetchData();
     }
-  }, [user, startDate, endDate]);
+  }, [user]);
 
   const handleEdit = (event: Event) => {
-    setEditingEvent(event);
-    setShowBillForm(true);
+    const category = categories.find(c => c.id === event.categoryId);
+    if (category) {
+      setEditingEvent(event);
+      setSelectedCategory(category);
+      setShowForm(true);
+    }
   };
 
-  if (isLoading || !user) {
-    return <div className={dashboardStyles.loading}>Carregando...</div>;
-  }
+  const handleMarkAsDone = async (id: number) => {
+    try {
+      await api.put(`/events/${id}`, { status: 'completed' });
+      fetchData();
+    } catch (err) {
+      console.error('Error marking as done:', err);
+      alert('Falha ao atualizar status.');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Deseja realmente excluir este agendamento?')) return;
+    try {
+      await api.delete(`/events/${id}`);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting:', err);
+      alert('Falha ao excluir.');
+    }
+  };
+
+  if (isLoading || !user) return <div className={styles.loading}>Carregando...</div>;
 
   return (
-    <div className={dashboardStyles.container}>
-      <header className={dashboardStyles.header}>
-        <div className={dashboardStyles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
-          <img src="/cronolog_logo.svg" alt="Cronolog Logo" className={dashboardStyles.logoImage} />
-          <span>Cronolog</span>
-        </div>
-        <div className={dashboardStyles.userInfo}>
-           <button onClick={() => router.push('/')} className={styles.backButton}>
-            <ChevronLeft size={20} /> Voltar
-          </button>
-        </div>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <Link href="/" className={styles.backButton}>
+          <ChevronLeft size={20} /> Voltar
+        </Link>
+        <h1 className={styles.title}>Agendados & Pendentes</h1>
       </header>
 
-      <main className={dashboardStyles.main}>
-        <section className={dashboardStyles.welcomeSection}>
-          <div className={dashboardStyles.welcomeInfo}>
-            <h1 className={dashboardStyles.welcomeTitle}>Eventos Agendados</h1>
-            <p className={dashboardStyles.statusText}>Consulte seus compromissos futuros e contas a pagar.</p>
+      <main className={styles.main}>
+        {loading ? (
+          <div className={styles.loading}>Carregando agendamentos...</div>
+        ) : error ? (
+          <div className={styles.error}>{error}</div>
+        ) : events.length === 0 ? (
+          <div className={styles.emptyState}>
+            <Calendar size={48} className={styles.emptyIcon} />
+            <p>Você não possui agendamentos pendentes.</p>
           </div>
-        </section>
-
-        <section className={styles.filtersSection}>
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <CalendarIcon size={14} /> De
-            </label>
-            <input 
-              type="date" 
-              className={styles.filterInput} 
-              value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)} 
-            />
-          </div>
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <CalendarIcon size={14} /> Até
-            </label>
-            <input 
-              type="date" 
-              className={styles.filterInput} 
-              value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)} 
-            />
-          </div>
-          <button className={styles.clearButton} onClick={() => { setStartDate(''); setEndDate(''); }}>
-            Limpar
-          </button>
-        </section>
-
-        <section className={styles.eventsGrid}>
-          {loading ? (
-            <div className={styles.loading}>Carregando compromissos...</div>
-          ) : events.length > 0 ? (
-            <div className={styles.scheduledList}>
-              {events.map((event) => {
-                const config = getCategoryConfig(event.categoryName || 'Geral');
-                const Icon = config.icon;
-                const eventDate = new Date(event.eventDate);
-                
-                const overdue = isBefore(eventDate, startOfDay(new Date())) && !isToday(eventDate);
-                const dueToday = isToday(eventDate);
-
-                return (
-                  <div 
-                    key={event.id} 
-                    className={`${styles.scheduledCard} ${overdue ? styles.overdue : ''} ${dueToday ? styles.dueToday : ''}`}
-                    onClick={() => handleEdit(event)}
-                  >
-                    <div className={styles.cardHeader}>
-                      <div 
-                        className={styles.iconBox}
-                        style={{ backgroundColor: `${config.color}15`, color: config.color }}
-                      >
-                        <Icon size={24} />
-                      </div>
-                      <div className={styles.titleInfo}>
-                        <h3 className={styles.eventTitle}>
-                          {event.title}
-                          {overdue && <AlertTriangle size={16} style={{ color: '#ef4444', marginLeft: '8px', verticalAlign: 'middle' }} />}
-                        </h3>
-                        <span className={styles.eventCategory}>{event.categoryName}</span>
-                      </div>
-                      <div className={styles.dateBadge}>
-                        <span className={styles.day}>{format(eventDate, 'dd')}</span>
-                        <span className={styles.month}>{format(eventDate, 'MMM', { locale: ptBR })}</span>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.cardContent}>
-                      {event.metadata?.valor && (
-                        <div className={styles.metadataItem}>
-                          <span className={styles.metaLabel}>Valor</span>
-                          <span className={styles.metaValue}>R$ {event.metadata.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      )}
-                      {event.metadata?.beneficiario && (
-                        <div className={styles.metadataItem}>
-                          <span className={styles.metaLabel}>Beneficiário</span>
-                          <span className={styles.metaValue}>{event.metadata.beneficiario}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={styles.cardFooter}>
-                      {event.isRecurring && (
-                        <span className={styles.recurringLabel}>
-                           Recorrente
-                        </span>
-                      )}
-                      <span className={styles.statusLabel}>
-                        {overdue ? 'Atrasado' : dueToday ? 'Vence Hoje' : 'Pendente'}
-                      </span>
-                    </div>
+        ) : (
+          <div className={styles.list}>
+            {events.map(event => (
+              <div key={event.id} className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.eventInfo}>
+                    <h3 className={styles.eventTitle}>{event.title}</h3>
+                    <span className={styles.categoryBadge}>{event.categoryName}</span>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className={styles.emptyState}>
-              <Search size={48} color="#e5e7eb" />
-              <p>Nenhum evento agendado encontrado para este período.</p>
-            </div>
-          )}
-        </section>
+                  <div className={styles.dateInfo}>
+                    <Clock size={14} />
+                    <span>{new Date(event.eventDate).toLocaleDateString()} {new Date(event.eventDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+
+                <div className={styles.cardBody}>
+                  {event.description && <p className={styles.description}>{event.description}</p>}
+                  {event.metadata && Object.keys(event.metadata).length > 0 && (
+                    <div className={styles.metadata}>
+                      {Object.entries(event.metadata).map(([key, value]) => (
+                        <div key={key} className={styles.metaItem}>
+                          <strong>{key.replace(/_/g, ' ')}:</strong> {String(value)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.cardActions}>
+                  <button 
+                    className={styles.actionButton} 
+                    onClick={() => handleMarkAsDone(event.id!)}
+                    title="Marcar como concluído"
+                  >
+                    <CheckCircle size={18} /> Concluir
+                  </button>
+                  <button 
+                    className={styles.actionButton} 
+                    onClick={() => handleEdit(event)}
+                    title="Editar"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    className={`${styles.actionButton} ${styles.deleteButton}`} 
+                    onClick={() => handleDelete(event.id!)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
-      {showBillForm && (
-        <BillToPayForm 
-          onClose={() => {
-            setShowBillForm(false);
-            setEditingEvent(null);
-          }}
-          onSuccess={() => {
-            setShowBillForm(false);
-            setEditingEvent(null);
-            fetchScheduledEvents();
-          }}
+      {showForm && selectedCategory && (
+        <DynamicEventForm 
+          category={selectedCategory}
           event={editingEvent}
+          onClose={() => setShowForm(false)}
+          onSuccess={() => {
+            setShowForm(false);
+            fetchData();
+          }}
         />
       )}
     </div>

@@ -1,33 +1,54 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { X, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Search, Loader2 } from 'lucide-react';
 import styles from './EventTypeSelectorModal.module.css';
-import { EVENT_GROUPS, EventGroup, EventType } from '@/lib/eventConfigs';
+import api from '@/lib/api';
+import { Category } from '@/types/event';
+import { getIconComponent } from '@/lib/iconUtils';
 
 interface EventTypeSelectorModalProps {
   onClose: () => void;
-  onSelect: (typeId: string) => void;
+  onSelect: (category: Category) => void;
 }
 
 export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredGroups = useMemo(() => {
-    if (!searchTerm.trim()) return EVENT_GROUPS;
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        setCategories(response.data.data || []);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-    const term = searchTerm.toLowerCase();
-    
-    return EVENT_GROUPS.map(group => ({
-      ...group,
-      types: group.types.filter(type => 
-        type.label.toLowerCase().includes(term) || 
-        type.description.toLowerCase().includes(term)
-      )
-    })).filter(group => group.types.length > 0);
-  }, [searchTerm]);
+  const groupedCategories = useMemo(() => {
+    const filtered = categories.filter(cat => {
+      const term = searchTerm.toLowerCase();
+      return cat.name.toLowerCase().includes(term) || 
+             cat.metadataSchema?.description?.toLowerCase().includes(term);
+    });
 
-  const hasResults = filteredGroups.length > 0;
+    const groups: Record<string, Category[]> = {};
+    filtered.forEach(cat => {
+      const groupName = cat.metadataSchema?.group || 'Outros';
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(cat);
+    });
+
+    return Object.entries(groups).map(([name, types]) => ({ name, types }));
+  }, [categories, searchTerm]);
+
+  const hasResults = groupedCategories.length > 0;
 
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -52,28 +73,33 @@ export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeS
         </div>
 
         <div className={styles.content}>
-          {hasResults ? (
-            filteredGroups.map((group: EventGroup) => (
+          {loading ? (
+            <div className={styles.loading}>
+              <Loader2 className={styles.spinner} size={32} />
+              <p>Carregando categorias...</p>
+            </div>
+          ) : hasResults ? (
+            groupedCategories.map((group) => (
               <div key={group.name} className={styles.group}>
                 <h3 className={styles.groupName}>{group.name}</h3>
                 <div className={styles.grid}>
-                  {group.types.map((type: EventType) => {
-                    const Icon = type.icon;
+                  {group.types.map((cat) => {
+                    const Icon = getIconComponent(cat.icon || 'tag');
                     return (
                       <button
-                        key={type.id}
+                        key={cat.id}
                         className={styles.typeCard}
-                        onClick={() => onSelect(type.id)}
+                        onClick={() => onSelect(cat)}
                       >
                         <div 
                           className={styles.typeIcon} 
-                          style={{ backgroundColor: `${type.color}15`, color: type.color }}
+                          style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
                         >
                           <Icon size={24} />
                         </div>
                         <div className={styles.typeInfo}>
-                          <span className={styles.typeLabel}>{type.label}</span>
-                          <span className={styles.typeDescription}>{type.description}</span>
+                          <span className={styles.typeLabel}>{cat.name}</span>
+                          <span className={styles.typeDescription}>{cat.metadataSchema?.description}</span>
                         </div>
                       </button>
                     );

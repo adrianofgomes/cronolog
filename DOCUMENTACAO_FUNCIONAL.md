@@ -41,7 +41,13 @@ Ao clicar no botão **"+ Novo lançamento"**, um modal é aberto com as opções
 
 ## 3. Recursos Inteligentes de UI/UX
 
-### 3.1. Autocomplete (Sugestões Automáticas)
+### 3.1. Magic Box (Inclusão por IA)
+A Magic Box é uma interface de entrada rápida localizada no topo do Dashboard. Ela permite que você registre eventos apenas digitando uma frase natural.
+- **Extração Inteligente:** Converte frases como "abasteci 150 reais no posto jurema" em um registro estruturado da categoria correta.
+- **Contexto Histórico:** A IA conhece os nomes de postos, carros e beneficiários que você já usou e sugere os mesmos termos para manter o histórico padronizado.
+- **Agendamento Automático:** Se você informar uma data futura, o evento é criado automaticamente com o status "Pendente" e aparece na seção de Agendados.
+
+### 3.2. Autocomplete (Sugestões Automáticas)
 Para agilizar o preenchimento, o sistema aprende com os seus registros anteriores.
 - **Compartilhamento de Dados:** Campos como "Paciente" e "Médico" sugerem nomes já utilizados em qualquer uma das categorias de saúde.
 - **Dados do Veículo:** Sugere nomes de carros e postos de combustíveis já cadastrados.
