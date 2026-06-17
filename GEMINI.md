@@ -40,12 +40,11 @@ O sistema utiliza uma abordagem flexível baseada em JSON para permitir múltipl
   - `metadata` (JSON): Armazena os dados específicos conforme a categoria.
   - `source` & `raw_input`: Preparado para processamento de linguagem natural (IA).
 
-### Fluxo de IA (Visionário)
-O campo `categories.metadata_schema` deve conter a definição dos campos esperados. Exemplo para categoria "Abastecimento":
-```json
-{ "km": "number", "litros": "number", "total": "number" }
-```
-A IA usará este esquema para extrair informações de um texto livre e preencher `events.metadata`.
+### Fluxo de IA (Magic Box)
+O Cronolog utiliza o **Google Gemini 2.5 Flash** para processar pedidos em linguagem natural.
+- **Funcionamento:** O backend busca as categorias, schemas e o histórico recente do usuário (valores conhecidos) e os envia como contexto para a IA.
+- **Status Inteligente:** A IA define automaticamente o status como `pending` para datas futuras ou solicitações de agendamento.
+- **Consistência:** A IA prioriza o uso de nomes já existentes no histórico do usuário para garantir padronização dos dados.
 
 ## 🚀 Fluxos de Trabalho Principais
 
@@ -60,6 +59,14 @@ A IA usará este esquema para extrair informações de um texto livre e preenche
 - **Execução:** `cd backend && ./vendor/bin/phpunit`.
 - **Mocking:** Sempre use mocks para `UserRepository` e outras dependências de infraestrutura em `backend/tests/TestCase.php`.
 - **Nota Técnica:** O `backend/app/routes.php` desativa a detecção de `basePath` em modo CLI para evitar erros 404 nos testes.
+
+### Testes Automatizados (Frontend / E2E)
+- **Framework:** Cypress.
+- **Execução:** Na raiz do projeto, execute `./run_e2e_tests.sh`.
+- **Funcionamento:** O script verifica se o backend (:8080) e o frontend (:3000) estão rodando. Caso contrário, tenta iniciá-los automaticamente antes de disparar os testes.
+- **Autenticação em Testes:** Para que os testes E2E funcionem, o backend deve permitir tokens de teste.
+  - No arquivo `backend/.env`, certifique-se de definir: `ENABLE_TEST_TOKENS=true`.
+  - Isso permite que o Cypress use o comando `cy.login()` com tokens simulados (`test-token`).
 
 ### Deploy (HostGator)
 O projeto utiliza uma estrutura automatizada para deploy via SFTP (lftp) ou SSH (zip):

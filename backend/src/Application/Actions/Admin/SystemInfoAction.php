@@ -63,8 +63,47 @@ class SystemInfoAction extends Action
             'max_upload_size' => ini_get('upload_max_filesize'),
             'post_max_size' => ini_get('post_max_size'),
             'memory_limit' => ini_get('memory_limit'),
+            'ai_status' => $this->checkAiStatus(),
         ];
 
         return $this->respondWithData($systemInfo);
+    }
+
+    private function checkAiStatus(): string
+    {
+        $aiKey = $this->settings->get('google')['ai_key'];
+        if (empty($aiKey)) {
+            return 'Não configurada (chave ausente)';
+        }
+
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => 'ping']
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.1
+            ]
+        ];
+
+        $ch = curl_init('https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=' . $aiKey);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            return 'Conectado';
+        }
+
+        return 'Erro: ' . $httpCode . ' - ' . substr($response ?: 'Sem resposta', 0, 100);
     }
 }

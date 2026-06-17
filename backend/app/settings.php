@@ -34,6 +34,7 @@ return function (ContainerBuilder $containerBuilder) {
                 ],
                 'google' => [
                     'client_id' => $_ENV['GOOGLE_CLIENT_ID'] ?? '',
+                    'ai_key' => $_ENV['GEMINI_API_KEY'] ?? '',
                 ],
                 'jwt' => [
                     'secret' => $_ENV['JWT_SECRET'] ?? 'default_secret_change_me',

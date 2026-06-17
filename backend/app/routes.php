@@ -55,7 +55,12 @@ return function (App $app) {
     });
 
     // Authenticated Routes
+    $app->group('/categories', function (Group $group) {
+        $group->get('', \App\Application\Actions\Category\ListCategoriesAction::class);
+    })->add(AuthMiddleware::class);
+
     $app->group('/events', function (Group $group) {
+        $group->post('/parse-nll', \App\Application\Actions\Event\ParseNLLEventAction::class);
         $group->post('', CreateEventAction::class);
         $group->get('', ListEventsAction::class);
         $group->put('/{id}', UpdateEventAction::class);

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info } from 'lucide-react';
+import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import styles from './admin.module.css';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
@@ -25,6 +25,7 @@ interface SystemInfo {
   app_date: string;
   php_version: string;
   db_status: string;
+  ai_status: string;
   server_software: string;
   os: string;
   debug_mode: boolean;
@@ -160,6 +161,15 @@ export default function AdminPage() {
                 <label>Banco de Dados</label>
                 <p className={systemInfo.db_status === 'Conectado' ? styles.statusOk : styles.statusError}>
                   {systemInfo.db_status}
+                </p>
+              </div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}><Sparkles size={20} /></div>
+              <div className={styles.infoContent}>
+                <label>Inteligência Artificial</label>
+                <p className={systemInfo.ai_status === 'Conectado' ? styles.statusOk : styles.statusError}>
+                  {systemInfo.ai_status}
                 </p>
               </div>
             </div>

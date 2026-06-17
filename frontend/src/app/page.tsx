@@ -7,97 +7,92 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { LogOut, Plus, Fuel, Heart, User as UserIcon, ShieldCheck, Wrench } from 'lucide-react';
 import styles from './dashboard.module.css';
-import EventForm from '@/components/events/EventForm';
-import MedicalExamForm from '@/components/events/MedicalExamForm';
-import MaintenanceForm from '@/components/events/MaintenanceForm';
-import VaccineForm from '@/components/events/VaccineForm';
-import MedicationForm from '@/components/events/MedicationForm';
-import AppointmentForm from '@/components/events/AppointmentForm';
-import GeneralEventForm from '@/components/events/GeneralEventForm';
-import BillToPayForm from '@/components/events/BillToPayForm';
+import DynamicEventForm from '@/components/events/DynamicEventForm';
 import EventTypeSelectorModal from '@/components/events/EventTypeSelectorModal';
+import MagicBox from '@/components/events/MagicBox';
 import Timeline from '@/components/events/Timeline';
 import UpcomingEventsList from '@/components/events/UpcomingEventsList';
-import { Event } from '@/types/event';
+import { Event, Category } from '@/types/event';
 
 export default function HomePage() {
   const { user, logout, isLoading, refreshUserStatus } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const [showEventForm, setShowEventForm] = useState(false);
-  const [showMedicalForm, setShowMedicalForm] = useState(false);
-  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
-  const [showVaccineForm, setShowVaccineForm] = useState(false);
-  const [showMedicationForm, setShowMedicationForm] = useState(false);
-  const [showAppointmentForm, setShowAppointmentForm] = useState(false);
-  const [showGeneralForm, setShowGeneralForm] = useState(false);
-  const [showBillForm, setShowBillForm] = useState(false);
+  const [showDynamicForm, setShowDynamicForm] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showSelector, setShowSelector] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [prefillData, setPrefillData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleEdit = (event: Event) => {
-    setEditingEvent(event);
-    if (event.categoryName === 'Exame Médico') {
-      setShowMedicalForm(true);
-    } else if (event.categoryName === 'Manutenção') {
-      setShowMaintenanceForm(true);
-    } else if (event.categoryName === 'Vacina') {
-      setShowVaccineForm(true);
-    } else if (event.categoryName === 'Remédios') {
-      setShowMedicationForm(true);
-    } else if (event.categoryName === 'Consulta') {
-      setShowAppointmentForm(true);
-    } else if (event.categoryName === 'Geral') {
-      setShowGeneralForm(true);
-    } else if (event.categoryName === 'Conta a Pagar') {
-      setShowBillForm(true);
-    } else {
-      setShowEventForm(true);
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/categories');
+      setCategories(response.data.data || []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
     }
   };
 
-  const handleAddNew = (type?: string) => {
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    setPrefillData(null);
+    const category = categories.find(c => c.id === event.categoryId);
+    if (category) {
+      setSelectedCategory(category);
+      setShowDynamicForm(true);
+    } else {
+      // Fallback if category not found (shouldn't happen if categories are loaded)
+      console.error('Category not found for event:', event.categoryId);
+    }
+  };
+
+  const handleAddNew = (cat?: Category, prefill?: any) => {
     setEditingEvent(null);
+    setPrefillData(prefill || null);
     
-    if (!type) {
+    if (!cat) {
       setShowSelector(true);
       return;
     }
 
     setShowSelector(false);
-    if (type === 'health') {
-      setShowMedicalForm(true);
-    } else if (type === 'vaccine') {
-      setShowVaccineForm(true);
-    } else if (type === 'medication') {
-      setShowMedicationForm(true);
-    } else if (type === 'appointment') {
-      setShowAppointmentForm(true);
-    } else if (type === 'maintenance') {
-      setShowMaintenanceForm(true);
-    } else if (type === 'general') {
-      setShowGeneralForm(true);
-    } else if (type === 'bill') {
-      setShowBillForm(true);
+    setSelectedCategory(cat);
+    setShowDynamicForm(true);
+  };
+
+  const handleMagicParse = (data: any) => {
+    const categoryId = data.category_id;
+    const category = categories.find(c => c.id === categoryId);
+    
+    if (category) {
+      handleAddNew(category, {
+        date: data.date,
+        description: data.description,
+        status: data.status,
+        metadata: data.metadata
+      });
     } else {
-      setShowEventForm(true);
+      // If AI didn't find category, open selector but keep prefill data
+      setPrefillData({
+        date: data.date,
+        description: data.description,
+        status: data.status,
+        metadata: data.metadata
+      });
+      setShowSelector(true);
     }
   };
 
   const handleCloseForm = () => {
-    setShowEventForm(false);
-    setShowMedicalForm(false);
-    setShowMaintenanceForm(false);
-    setShowVaccineForm(false);
-    setShowMedicationForm(false);
-    setShowAppointmentForm(false);
-    setShowGeneralForm(false);
-    setShowBillForm(false);
+    setShowDynamicForm(false);
     setShowSelector(false);
     setEditingEvent(null);
+    setSelectedCategory(null);
+    setPrefillData(null);
   };
 
   const fetchEvents = async () => {
@@ -109,8 +104,6 @@ export default function HomePage() {
       ]);
       setEvents(completedRes.data.data || []);
       
-      // For upcoming, we take only the next 5 sorted by date (the API returns DESC, so we might need to sort ASC or the repository already handles it)
-      // Actually MySqlEventRepository handles DESC, for pending we probably want ASC (closer dates first)
       const pending = pendingRes.data.data || [];
       const sortedPending = [...pending].sort((a, b) => 
         new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
@@ -139,8 +132,11 @@ export default function HomePage() {
   }, [user, isLoading, router]);
 
   useEffect(() => {
+    console.log('HomePage useEffect triggered. User:', user, 'Status:', user?.status);
     if (user && user.status === 'active') {
+      console.log('Fetching events and categories...');
       fetchEvents();
+      fetchCategories();
     }
     if (user && user.isAdmin) {
       fetchPendingCount();
@@ -230,27 +226,46 @@ export default function HomePage() {
           )}
         </section>
 
+        {!isPending && !isBlocked && (
+          <MagicBox onParse={handleMagicParse} />
+        )}
+
         <section className={styles.dashboardGrid}>
           <div className={styles.quickActions}>
             <h2 className={styles.sectionTitle}>Atalhos</h2>
             <div className={styles.actionCards}>
               <div 
                 className={`${styles.actionCard} ${styles.refuelCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => !isPending && !isBlocked && handleAddNew('fuel')}
+                onClick={() => {
+                  if (!isPending && !isBlocked) {
+                    const cat = categories.find(c => c.name === 'Abastecimento');
+                    if (cat) handleAddNew(cat);
+                  }
+                }}
               >
                 <Fuel size={24} />
                 <span>Abastecimento</span>
               </div>
               <div 
                 className={`${styles.actionCard} ${styles.healthCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => !isPending && !isBlocked && handleAddNew('health')}
+                onClick={() => {
+                   if (!isPending && !isBlocked) {
+                    const cat = categories.find(c => c.name === 'Exame Médico');
+                    if (cat) handleAddNew(cat);
+                  }
+                }}
               >
                 <Heart size={24} />
                 <span>Saúde</span>
               </div>
               <div 
                 className={`${styles.actionCard} ${styles.maintenanceCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => !isPending && !isBlocked && handleAddNew('maintenance')}
+                onClick={() => {
+                  if (!isPending && !isBlocked) {
+                    const cat = categories.find(c => c.name === 'Manutenção');
+                    if (cat) handleAddNew(cat);
+                  }
+                }}
               >
                 <Wrench size={24} />
                 <span>Manutenção</span>
@@ -274,90 +289,22 @@ export default function HomePage() {
         </section>
       </main>
 
-      {showEventForm && (
-        <EventForm 
+      {showDynamicForm && selectedCategory && (
+        <DynamicEventForm
           onClose={handleCloseForm} 
           onSuccess={() => {
             handleCloseForm();
             fetchEvents();
           }} 
+          category={selectedCategory}
           event={editingEvent}
-        />
-      )}
-      {showMedicalForm && (
-        <MedicalExamForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showMaintenanceForm && (
-        <MaintenanceForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showVaccineForm && (
-        <VaccineForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showMedicationForm && (
-        <MedicationForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showAppointmentForm && (
-        <AppointmentForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showGeneralForm && (
-        <GeneralEventForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
-        />
-      )}
-      {showBillForm && (
-        <BillToPayForm
-          onClose={handleCloseForm} 
-          onSuccess={() => {
-            handleCloseForm();
-            fetchEvents();
-          }} 
-          event={editingEvent}
+          prefillData={prefillData}
         />
       )}
       {showSelector && (
         <EventTypeSelectorModal
           onClose={() => setShowSelector(false)}
-          onSelect={(type) => handleAddNew(type)}
+          onSelect={(cat) => handleAddNew(cat, prefillData)}
         />
       )}
     </div>
