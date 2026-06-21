@@ -7,5 +7,6 @@ This project is AI-driven. Always refer to `GEMINI.md` in the root for the full 
 2. **Test-Driven Development:** Never consider a task complete without automated tests (PHPUnit for backend, Jest/Cypress for frontend).
 3. **Regression Testing:** Run existing tests before finalizing any change.
 4. **Follow Conventions:** Adhere strictly to the patterns defined in `GEMINI.md`.
+5. **Portuguese Commits:** All commit messages must be in Portuguese (conventional commits).
 
 For detailed architecture and workflows, read **GEMINI.md**.

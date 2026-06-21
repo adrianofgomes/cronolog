@@ -7,3 +7,4 @@ Primary source of truth: `GEMINI.md`.
 2. Always generate automated tests for new logic.
 3. Validate regressions by running existing tests.
 4. Stick to the project's established Clean Architecture.
+5. All commit messages must be in Portuguese (conventional commits).

@@ -6,5 +6,6 @@ Always prioritize the instructions found in `GEMINI.md`.
 - **Documentation:** Automatically update documentation (`README.md`, `GEMINI.md`) when making changes.
 - **Testing:** Generate and run tests for every new feature.
 - **Standards:** Strictly follow the Clean Architecture patterns described in `GEMINI.md`.
+- **Commits:** All commit messages must be in Portuguese (conventional commits).
 
 Refer to `GEMINI.md` for the complete guide on project structure, backend patterns, and deploy workflows.

@@ -93,7 +93,8 @@ Este projeto é desenvolvido majoritariamente por agentes de IA. As seguintes re
     - **Backend:** Sempre use `UTC` internamente. As datas retornadas pela API devem estar no formato ISO 8601 UTC (`Y-m-d\TH:i:s\Z`).
     - **Frontend:** Receba datas em UTC e converta para o fuso horário local do usuário apenas para exibição e entrada nos formulários (utilize `toDateTimeLocal` e `toUTCISOString` em `frontend/src/lib/dateUtils.ts`).
     - **NUNCA** envie ou armazene strings de data "naivas" (sem fuso horário) entre frontend e backend.
-8. **Formulários e Opcionalidade:**
+7.  **Idioma dos Commits:** Todas as mensagens de commit geradas por IA devem ser escritas em **Português**, seguindo o padrão de 'conventional commits' (ex: feat:, fix:, refactor:).
+8.  **Formulários e Opcionalidade:**
     - Todos os campos de preenchimento em formulários de eventos devem ser **opcionais**, a menos que haja uma necessidade de negócio estrita e justificada.
     - **Datas:** Se o campo de data/hora não for preenchido pelo usuário, o sistema **deve** utilizar a data e hora atual (`new Date()` no frontend).
     - **Metadados:** Nenhum campo dentro do `metadata` (ex: carro, KM, posto, serviço) deve ser obrigatório.
