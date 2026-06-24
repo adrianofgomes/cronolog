@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "cypress:open": "cypress open",
@@ -13,20 +13,24 @@
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
     "@react-oauth/google": "^0.13.5",
-    "axios": "^1.17.0",
     "date-fns": "^4.4.0",
-    "lucide-react": "^1.17.0",
-    "next": "16.2.7",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "lucide-react": "^1.21.0",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "cypress": "^15.17.0",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.10",
+    "cypress": "^15.18.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.7",
+    "eslint-config-next": "16.2.9",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.15",
+    "serialize-javascript": "^7.0.6",
+    "form-data": "^4.0.6"
   }
 }
