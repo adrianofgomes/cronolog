@@ -11,6 +11,7 @@
     "cypress:run": "cypress run"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@react-oauth/google": "^0.13.5",
     "axios": "^1.17.0",
     "date-fns": "^4.4.0",
