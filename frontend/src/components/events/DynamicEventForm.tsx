@@ -66,9 +66,27 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
   const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    // Lock background scroll
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      // Restore background scroll
+      document.body.style.overflow = originalStyle;
+    };
+  }, [onClose]);
+
+  useEffect(() => {
     const fetchSuggestions = async () => {
       const suggestFields = fields.filter((f: any) => f.suggest).map((f: any) => f.name);
-      if (suggestFields.length === 0) return;
 
       try {
         // Fetch all events for the user to aggregate suggestions globally
@@ -79,8 +97,12 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
         suggestFields.forEach((fieldName: string) => {
           newSuggestions[fieldName] = new Set<string>();
         });
+        newSuggestions['title'] = new Set<string>();
 
         events.forEach((e: any) => {
+          if (e.title) {
+            newSuggestions['title'].add(e.title);
+          }
           if (e.metadata) {
             suggestFields.forEach((fieldName: string) => {
               if (e.metadata[fieldName]) {
@@ -232,6 +254,34 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}
 
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Título</label>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder={`Ex: ${category.name}`}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              list="title-suggestions"
+            />
+            <datalist id="title-suggestions">
+              {(suggestions['title'] || []).map(s => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>
+              <Calendar size={14} /> Data e Hora
+            </label>
+            <input
+              type="datetime-local"
+              className={styles.input}
+              value={eventDate}
+              onChange={e => setEventDate(e.target.value)}
+              required
+            />
+          </div>
+
           {/* Preset Headers */}
           {schema.preset === 'vehicle' && (
             <VehicleHeaderForm 
@@ -243,43 +293,13 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
 
           {schema.preset === 'health' && (
             <HealthHeaderForm 
-              eventDate={eventDate}
-              onDateChange={setEventDate}
               paciente={metadata.paciente}
               onPacienteChange={(val) => handleMetadataChange('paciente', val)}
               suggestions={{ pacientes: suggestions['paciente'] || [] }}
             />
           )}
 
-          {!schema.preset && (
-             <div className={styles.fieldGroup}>
-                <label className={styles.label}>Título</label>
-                <input
-                  type="text"
-                  className={styles.input}
-                  placeholder={`Ex: ${category.name}`}
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                />
-            </div>
-          )}
-
           <div className={styles.grid}>
-            {(!schema.preset || schema.preset !== 'health') && (
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>
-                  <Calendar size={14} /> Data e Hora
-                </label>
-                <input
-                  type="datetime-local"
-                  className={styles.input}
-                  value={eventDate}
-                  onChange={e => setEventDate(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-
             {/* Render fields from schema that are NOT handled by presets */}
             {fields.map((field: any) => {
               if (schema.preset === 'vehicle' && ['carro', 'km_atual'].includes(field.name)) return null;

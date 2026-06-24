@@ -16,10 +16,13 @@
   background: white;
   width: 90%;
   max-width: 600px;
+  max-height: 90vh;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: slideIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideIn {
@@ -34,6 +37,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .categoryIcon {
@@ -50,6 +54,7 @@
   font-size: 1.25rem;
   font-weight: 600;
   flex: 1;
+  min-width: 0;
 }
 
 .closeButton {
@@ -74,6 +79,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
 }
 
 .grid {
@@ -86,6 +94,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .label {
@@ -240,7 +249,20 @@
 }
 
 @media (max-width: 640px) {
+  .modal {
+    width: 95%;
+  }
+
+  .form {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .grid > * {
+    grid-column: auto !important;
   }
 }

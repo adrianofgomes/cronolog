@@ -1,12 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Calendar, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import styles from './EventForm.module.css';
 
 interface HealthHeaderFormProps {
-  eventDate: string;
-  onDateChange: (value: string) => void;
   paciente: string;
   onPacienteChange: (value: string) => void;
   suggestions: {
@@ -15,27 +13,12 @@ interface HealthHeaderFormProps {
 }
 
 export default function HealthHeaderForm({
-  eventDate,
-  onDateChange,
   paciente,
   onPacienteChange,
   suggestions
 }: HealthHeaderFormProps) {
   return (
     <>
-      <div className={styles.fieldGroup}>
-        <label className={styles.label}>
-          <Calendar size={14} /> Data e Hora
-        </label>
-        <input
-          type="datetime-local"
-          className={styles.input}
-          value={eventDate}
-          onChange={(e) => onDateChange(e.target.value)}
-          required
-        />
-      </div>
-
       <div className={styles.fieldGroup}>
         <label className={styles.label}>
           <User size={14} /> Paciente

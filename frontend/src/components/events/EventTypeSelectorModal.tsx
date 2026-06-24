@@ -31,6 +31,25 @@ export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeS
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    // Lock background scroll
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      // Restore background scroll
+      document.body.style.overflow = originalStyle;
+    };
+  }, [onClose]);
+
   const groupedCategories = useMemo(() => {
     const filtered = categories.filter(cat => {
       const term = searchTerm.toLowerCase();
