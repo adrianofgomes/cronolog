@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, Category } from '@/types/event';
 import styles from './EventForm.module.css';
-import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp, Download, Eye } from 'lucide-react';
+import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp, Download, Eye, RefreshCcw } from 'lucide-react';
 import api from '@/lib/api';
 import { toDateTimeLocal, toUTCISOString } from '@/lib/dateUtils';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
@@ -11,6 +11,7 @@ import AttachmentComponent from '@/components/common/AttachmentComponent';
 import { getIconComponent } from '@/lib/iconUtils';
 import VehicleHeaderForm from './VehicleHeaderForm';
 import HealthHeaderForm from './HealthHeaderForm';
+import EventTypeSelectorModal from './EventTypeSelectorModal';
 
 interface DynamicEventFormProps {
   onClose: () => void;
@@ -30,8 +31,12 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
   const [error, setError] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
+  // Current category state (allows changing type)
+  const [currentCategory, setCurrentCategory] = useState<Category>(category);
+  const [showSelector, setShowSelector] = useState(false);
+
   // Schema extraction
-  const schema = category.metadataSchema || {};
+  const schema = currentCategory.metadataSchema || {};
   const fields = schema.fields || [];
   
   // Default features: attachments and recurrence are TRUE unless explicitly FALSE
@@ -58,6 +63,46 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     // Preserve any existing metadata not in schema
     return { ...(event?.metadata || {}), ...(prefillData?.metadata || {}), ...initialMetadata };
   });
+
+  // Attachments state
+  const [attachments, setAttachments] = useState<any[]>(event?.attachments || []);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; description: string; id: string }[]>([]);
+
+  // Recurrence state
+  const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(event?.recurrenceInterval?.toString() || '1');
+  const [recurrenceType, setRecurrenceType] = useState(event?.recurrenceType || 'months');
+
+  // Suggestions (Autocomplete)
+  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
+
+  const handleChangeCategory = (newCat: Category) => {
+    const newSchema = newCat.metadataSchema || {};
+    const newFields = newSchema.fields || [];
+    
+    const newMetadata: Record<string, any> = {};
+    
+    // 1. Keep preset fields if both have the same preset
+    if (schema.preset && schema.preset === newSchema.preset) {
+        if (schema.preset === 'vehicle') {
+            newMetadata.carro = metadata.carro;
+            newMetadata.km_atual = metadata.km_atual;
+        } else if (schema.preset === 'health') {
+            newMetadata.paciente = metadata.paciente;
+        }
+    }
+
+    // 2. Keep fields that exist in the new schema (match by name)
+    newFields.forEach((f: any) => {
+        if (metadata[f.name] !== undefined && metadata[f.name] !== '') {
+            newMetadata[f.name] = metadata[f.name];
+        }
+    });
+
+    setCurrentCategory(newCat);
+    setMetadata(newMetadata);
+    setShowSelector(false);
+  };
 
   // Attachments state
   const [attachments, setAttachments] = useState<any[]>(event?.attachments || []);
@@ -237,8 +282,8 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
       });
 
       const payload = {
-        categoryId: category.id,
-        title: title || category.name,
+        categoryId: currentCategory.id,
+        title: title || currentCategory.name,
         eventDate: toUTCISOString(eventDate),
         metadata: cleanMetadata,
         status: event?.status || prefillData?.status || (features.status_tracking ? 'pending' : 'completed'),
@@ -300,16 +345,27 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     }
   };
 
-  const Icon = useMemo(() => getIconComponent(category.icon || 'tag'), [category.icon]);
+  const Icon = useMemo(() => getIconComponent(currentCategory.icon || 'tag'), [currentCategory.icon]);
 
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <div className={styles.categoryIcon} style={{ backgroundColor: category.color }}>
+          <div className={styles.categoryIcon} style={{ backgroundColor: currentCategory.color }}>
             <Icon size={20} color="#fff" />
           </div>
-          <h2 className={styles.modalTitle}>{event ? `Editar ${category.name}` : `Novo Lançamento: ${category.name}`}</h2>
+          <div className={styles.headerInfo}>
+            <h2 className={styles.modalTitle}>{event ? `Editar ${currentCategory.name}` : `Novo Lançamento: ${currentCategory.name}`}</h2>
+            {event && (
+                <button 
+                    type="button" 
+                    className={styles.changeTypeButton}
+                    onClick={() => setShowSelector(true)}
+                >
+                    <RefreshCcw size={12} /> Trocar tipo
+                </button>
+            )}
+          </div>
           <button onClick={onClose} className={styles.closeButton}>
             <X size={20} />
           </button>
@@ -323,7 +379,7 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
             <input
               type="text"
               className={styles.input}
-              placeholder={`Ex: ${category.name}`}
+              placeholder={`Ex: ${currentCategory.name}`}
               value={title}
               onChange={e => setTitle(e.target.value)}
               list="title-suggestions"
@@ -522,6 +578,13 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
           message={modalConfig.message}
           onConfirm={modalConfig.onConfirm}
           onCancel={() => setModalConfig(null)}
+        />
+      )}
+
+      {showSelector && (
+        <EventTypeSelectorModal
+          onClose={() => setShowSelector(false)}
+          onSelect={handleChangeCategory}
         />
       )}
     </div>
