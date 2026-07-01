@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Event, Category } from '@/types/event';
 import styles from './EventForm.module.css';
-import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp, Download, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import { toDateTimeLocal, toUTCISOString } from '@/lib/dateUtils';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
@@ -133,6 +133,64 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     setPendingFiles(prev => [...prev, { file, description, id: Math.random().toString(36).substring(7) }]);
   };
 
+  const handleDownload = async (filename: string) => {
+    if (!event?.id) return;
+    try {
+      const response = await api.get(`/events/${event.id}/attachments/${filename}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      alert('Falha ao baixar arquivo.');
+    }
+  };
+
+  const handleView = async (filename: string) => {
+    if (!event?.id) return;
+    try {
+      const response = await api.get(`/events/${event.id}/attachments/${filename}`, {
+        responseType: 'blob'
+      });
+      const file = new Blob([response.data], { type: response.headers['content-type'] as string });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL);
+    } catch (err) {
+      console.error('Error viewing file:', err);
+      alert('Falha ao visualizar arquivo.');
+    }
+  };
+
+  const handleDeleteAttachment = async (attId: number) => {
+    if (!event?.id) return;
+    
+    setModalConfig({
+        isOpen: true,
+        title: 'Excluir Anexo',
+        message: 'Tem certeza que deseja excluir este anexo permanentemente?',
+        onConfirm: async () => {
+            try {
+                setLoading(true);
+                await api.delete(`/events/${event.id}/attachments/${attId}`);
+                setAttachments(prev => prev.filter(a => a.id !== attId));
+                setModalConfig(null);
+            } catch (err) {
+                console.error('Error deleting attachment:', err);
+                alert('Falha ao excluir anexo.');
+            } finally {
+                setLoading(false);
+            }
+        }
+    });
+  };
+
   const removePendingFile = (id: string) => {
     setPendingFiles(prev => prev.filter(f => f.id !== id));
   };
@@ -236,7 +294,7 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     }
   };
 
-  const Icon = getIconComponent(category.icon || 'tag');
+  const Icon = useMemo(() => getIconComponent(category.icon || 'tag'), [category.icon]);
 
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -389,10 +447,23 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
                 {/* Existing Attachments */}
                 {attachments.map((a: any) => (
                   <div key={a.id} className={styles.attachmentItem}>
-                    {/* Render attachment logic similar to specialized forms */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                        <span style={{ fontSize: '14px' }}>{a.fileType === 'pdf' ? '📄 ' : '🖼️ '} {a.description || a.filename}</span>
-                        <button type="button" onClick={() => {/* TODO: implement generic download */}} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {a.fileType === 'pdf' ? '📄 ' : '🖼️ '} {a.description || a.filename}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button type="button" title="Visualizar" onClick={() => handleView(a.filename)} style={{ color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                                <Eye size={16} />
+                            </button>
+                            <button type="button" title="Baixar" onClick={() => handleDownload(a.filename)} style={{ color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                                <Download size={16} />
+                            </button>
+                            <button type="button" title="Excluir" onClick={() => handleDeleteAttachment(a.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
                     </div>
                   </div>
                 ))}
