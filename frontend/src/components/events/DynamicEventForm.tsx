@@ -33,7 +33,13 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
   // Schema extraction
   const schema = category.metadataSchema || {};
   const fields = schema.fields || [];
-  const features = schema.features || {};
+  
+  // Default features: attachments and recurrence are TRUE unless explicitly FALSE
+  const features = {
+    attachments: true,
+    recurrence: true,
+    ...(schema.features || {})
+  };
 
   // Form State
   const [title, setTitle] = useState(event?.title || prefillData?.description || '');

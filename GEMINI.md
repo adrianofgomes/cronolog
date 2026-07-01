@@ -141,3 +141,7 @@ Para manter a consistência e usabilidade do sistema, todos os novos formulário
 3.  **Sugestões (Autocomplete):** Carregue os valores únicos dos eventos anteriores da mesma categoria na montagem do componente (`useEffect`) e popule as listas de sugestões.
 4.  **Componentes:** Utilize os componentes reutilizáveis, como o `AttachmentComponent`, sempre que necessário.
 5.  **Instrução para IAs:** Ao implementar um novo tipo de evento, a IA deve criar o formulário seguindo o estilo visual (`.module.css`), a estrutura de campos de entrada, a lógica de sugestões de campos reutilizáveis e o tratamento de erros padrão dos formulários existentes (`EventForm`, `MedicalExamForm`).
+
+10. **Padrões de Funcionalidades Globais:**
+    - Por padrão, todos os tipos de eventos **devem** permitir anexos (`attachments`) e agendamento/recorrência (`recurrence`). 
+    - A desativação dessas funcionalidades deve ser tratada como uma exceção explícita no `metadata_schema` da categoria.
