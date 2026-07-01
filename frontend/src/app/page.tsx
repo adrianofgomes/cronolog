@@ -13,12 +13,14 @@ import MagicBox from '@/components/events/MagicBox';
 import Timeline from '@/components/events/Timeline';
 import UpcomingEventsList from '@/components/events/UpcomingEventsList';
 import Header from '@/components/common/Header';
+import EventFilters from '@/components/events/EventFilters';
 import { Event, Category } from '@/types/event';
 
 export default function HomePage() {
   const { user, logout, isLoading, refreshUserStatus } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [totalPending, setTotalPending] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [showDynamicForm, setShowDynamicForm] = useState(false);
@@ -27,7 +29,25 @@ export default function HomePage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [prefillData, setPrefillData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const router = useRouter();
+
+  // Filter events based on search query and active category
+  const filteredEvents = events.filter(event => {
+    const category = categories.find(c => c.id === event.categoryId);
+    const searchTerm = searchQuery.toLowerCase();
+    
+    const matchesQuery = !searchQuery || 
+      (event.title?.toLowerCase().includes(searchTerm)) ||
+      (event.description?.toLowerCase().includes(searchTerm)) ||
+      (category?.name.toLowerCase().includes(searchTerm)) ||
+      (JSON.stringify(event.metadata).toLowerCase().includes(searchTerm));
+      
+    const matchesCategory = !activeCategoryId || String(event.categoryId) === activeCategoryId;
+    
+    return matchesQuery && matchesCategory;
+  });
 
   const fetchCategories = async () => {
     try {
@@ -106,6 +126,7 @@ export default function HomePage() {
       setEvents(completedRes.data.data || []);
       
       const pending = pendingRes.data.data || [];
+      setTotalPending(pending.length);
       const sortedPending = [...pending].sort((a, b) => 
         new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
       );
@@ -188,9 +209,6 @@ export default function HomePage() {
           </div>
           {!isPending && !isBlocked && (
             <div className={styles.welcomeActions}>
-              <Link href="/scheduled" className={styles.scheduledLink}>
-                Agendados
-              </Link>
               <button
                 className={styles.addEventButton}
                 onClick={() => handleAddNew()}
@@ -256,8 +274,37 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <UpcomingEventsList events={upcomingEvents} onEdit={handleEdit} />
-                <Timeline events={events} onEdit={handleEdit} />
+                <EventFilters 
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  categories={categories}
+                  activeCategoryId={activeCategoryId}
+                  onCategoryChange={setActiveCategoryId}
+                />
+
+                <UpcomingEventsList 
+                  events={upcomingEvents.filter(event => {
+                    const category = categories.find(c => c.id === event.categoryId);
+                    const searchTerm = searchQuery.toLowerCase();
+                    const matchesQuery = !searchQuery || 
+                      (event.title?.toLowerCase().includes(searchTerm)) ||
+                      (event.description?.toLowerCase().includes(searchTerm)) ||
+                      (category?.name.toLowerCase().includes(searchTerm)) ||
+                      (JSON.stringify(event.metadata).toLowerCase().includes(searchTerm));
+                    const matchesCategory = !activeCategoryId || String(event.categoryId) === activeCategoryId;
+                    return matchesQuery && matchesCategory;
+                  })} 
+                  totalEvents={totalPending} 
+                  onEdit={handleEdit} 
+                />
+
+                <Timeline 
+                  events={filteredEvents} 
+                  onEdit={handleEdit} 
+                  isFiltered={searchQuery !== '' || activeCategoryId !== null}
+                  onClearFilters={() => { setSearchQuery(''); setActiveCategoryId(null); }}
+                  totalEvents={events.length}
+                />
               </>
             )}
           </div>

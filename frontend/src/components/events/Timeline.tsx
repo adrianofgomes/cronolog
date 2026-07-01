@@ -11,9 +11,18 @@ import EventCard from './EventCard';
 interface TimelineProps {
   events: Event[];
   onEdit?: (event: Event) => void;
+  isFiltered?: boolean;
+  onClearFilters?: () => void;
+  totalEvents?: number;
 }
 
-export default function Timeline({ events, onEdit }: TimelineProps) {
+export default function Timeline({ 
+  events, 
+  onEdit, 
+  isFiltered = false, 
+  onClearFilters,
+  totalEvents = 0
+}: TimelineProps) {
   const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -29,47 +38,66 @@ export default function Timeline({ events, onEdit }: TimelineProps) {
     fetchCategories();
   }, []);
 
-  if (events.length === 0) {
-    return (
-      <div className={styles.empty}>
-        Nenhum evento registrado ainda.
-      </div>
-    );
-  }
-
   return (
     <div className={styles.timeline}>
       <div className={styles.timelineHeader}>
-        <h2 className={styles.sectionTitle}>Atividades Recentes</h2>
-        <div className={styles.viewToggle}>
-          <button 
-            className={`${styles.toggleBtn} ${viewMode === 'summary' ? styles.active : ''}`}
-            onClick={() => setViewMode('summary')}
-          >
-            Resumido
-          </button>
-          <button 
-            className={`${styles.toggleBtn} ${viewMode === 'detailed' ? styles.active : ''}`}
-            onClick={() => setViewMode('detailed')}
-          >
-            Detalhado
-          </button>
-        </div>
+        <h2 className={styles.sectionTitle}>
+          Atividades Recentes
+          {totalEvents > 0 && (
+            <span className={styles.counterBadge}>{events.length}/{totalEvents}</span>
+          )}
+        </h2>
+        {events.length > 0 && (
+          <div className={styles.viewToggle}>
+            <button 
+              className={`${styles.toggleBtn} ${viewMode === 'summary' ? styles.active : ''}`}
+              onClick={() => setViewMode('summary')}
+            >
+              Resumido
+            </button>
+            <button 
+              className={`${styles.toggleBtn} ${viewMode === 'detailed' ? styles.active : ''}`}
+              onClick={() => setViewMode('detailed')}
+            >
+              Detalhado
+            </button>
+          </div>
+        )}
       </div>
 
-      {events.map((event, index) => {
-        const category = categories.find(c => c.id === event.categoryId);
+      {events.length === 0 ? (
+        <div className={styles.empty}>
+          {isFiltered ? (
+            <div className={styles.noResults}>
+              <p>Nenhum evento encontrado para os filtros aplicados.</p>
+              {onClearFilters && (
+                <button 
+                  onClick={onClearFilters}
+                  className={styles.clearFiltersLink}
+                >
+                  Limpar todos os filtros
+                </button>
+              )}
+            </div>
+          ) : (
+            "Nenhum evento registrado ainda."
+          )}
+        </div>
+      ) : (
+        events.map((event, index) => {
+          const category = categories.find(c => c.id === event.categoryId);
 
-        return (
-          <EventCard 
-            key={event.id || index}
-            event={event}
-            category={category}
-            viewMode={viewMode}
-            onClick={() => onEdit?.(event)}
-          />
-        );
-      })}
+          return (
+            <EventCard 
+              key={event.id || index}
+              event={event}
+              category={category}
+              viewMode={viewMode}
+              onClick={() => onEdit?.(event)}
+            />
+          );
+        })
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Event, Category } from '@/types/event';
 import { Clock, AlertTriangle } from 'lucide-react';
 import styles from './Timeline.module.css';
@@ -26,7 +26,7 @@ export default function EventCard({
   noBorder = false
 }: EventCardProps) {
   const color = category?.color || '#6b7280';
-  const Icon = getIconComponent(category?.icon || 'tag');
+  const Icon = useMemo(() => getIconComponent(category?.icon || 'tag'), [category?.icon]);
   const eventDate = new Date(event.eventDate);
   
   const overdue = event.status === 'pending' && isBefore(eventDate, startOfDay(new Date())) && !isToday(eventDate);
