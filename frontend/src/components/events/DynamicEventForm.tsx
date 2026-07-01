@@ -104,18 +104,6 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     setShowSelector(false);
   };
 
-  // Attachments state
-  const [attachments, setAttachments] = useState<any[]>(event?.attachments || []);
-  const [pendingFiles, setPendingFiles] = useState<{ file: File; description: string; id: string }[]>([]);
-
-  // Recurrence state
-  const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
-  const [recurrenceInterval, setRecurrenceInterval] = useState(event?.recurrenceInterval?.toString() || '1');
-  const [recurrenceType, setRecurrenceType] = useState(event?.recurrenceType || 'months');
-
-  // Suggestions (Autocomplete)
-  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
-
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
