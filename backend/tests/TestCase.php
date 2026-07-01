@@ -59,7 +59,7 @@ abstract class TestCase extends PHPUnitTestCase
                         'client_id' => 'test-client-id',
                     ],
                     'jwt' => [
-                        'secret' => 'test_secret',
+                        'secret' => 'test_secret_must_be_at_least_32_chars_long_for_security',
                         'expires_days' => 30,
                     ],
                 ];

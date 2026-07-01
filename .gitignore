@@ -19,6 +19,8 @@ deploy_package/
 # Logs e Cache
 logs/*.log
 !logs/.gitkeep
+backend.log
+frontend_dev.log
 
 # IDEs e Editores
 .vscode/
