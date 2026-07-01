@@ -64,7 +64,13 @@ export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeS
       groups[groupName].push(cat);
     });
 
-    return Object.entries(groups).map(([name, types]) => ({ name, types }));
+    return Object.entries(groups)
+      .map(([name, types]) => ({ name, types }))
+      .sort((a, b) => {
+        if (a.name === 'Outros') return 1;
+        if (b.name === 'Outros') return -1;
+        return a.name.localeCompare(b.name);
+      });
   }, [categories, searchTerm]);
 
   const hasResults = groupedCategories.length > 0;
