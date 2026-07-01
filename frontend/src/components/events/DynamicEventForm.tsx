@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, Category } from '@/types/event';
 import styles from './EventForm.module.css';
-import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp, Download, Eye, RefreshCcw } from 'lucide-react';
+import { Save, X, Trash2, Calendar, RefreshCw, Loader2, Paperclip, ChevronDown, ChevronUp, Download, Eye, RefreshCcw, DollarSign } from 'lucide-react';
 import api from '@/lib/api';
 import { toDateTimeLocal, toUTCISOString } from '@/lib/dateUtils';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
@@ -414,10 +414,17 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
               if (schema.preset === 'health' && field.name === 'paciente') return null;
 
               const isFullWidth = field.width === 'full' || fields.length === 1;
+              const isMonetary = field.name.includes('valor') || 
+                                field.name.includes('custo') || 
+                                field.name.includes('total') || 
+                                (field.type === 'number' && field.step === '0.01');
 
               return (
                 <div key={field.name} className={styles.fieldGroup} style={{ gridColumn: isFullWidth ? 'span 2' : 'auto' }}>
-                  <label className={styles.label}>{field.label}</label>
+                  <label className={styles.label}>
+                    {isMonetary && <DollarSign size={14} />}
+                    {field.label}
+                  </label>
                   {field.type === 'textarea' ? (
                     <textarea
                       className={styles.input}
