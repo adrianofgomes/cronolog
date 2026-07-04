@@ -53,7 +53,19 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     if (prefillData?.date) return toDateTimeLocal(new Date(prefillData.date));
     return toDateTimeLocal(new Date());
   });
-  
+
+  const [status, setStatus] = useState<'pending' | 'completed' | 'cancelled'>(() => {
+    if (event?.status) return event.status;
+    if (prefillData?.status) return prefillData.status;
+    
+    // Auto-status for new events
+    if (features.status_tracking) {
+        const date = prefillData?.date ? new Date(prefillData.date) : new Date();
+        return (date > new Date() ? 'pending' : 'completed') as 'pending' | 'completed' | 'cancelled';
+    }
+    return 'completed' as 'pending' | 'completed' | 'cancelled';
+  });
+
   // Dynamic metadata state
   const [metadata, setMetadata] = useState<Record<string, any>>(() => {
     const initialMetadata: Record<string, any> = {};
@@ -163,6 +175,21 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
 
     fetchSuggestions();
   }, [fields]); // Removed category.id from dependencies to be global
+
+  const handleDateChange = (newDateStr: string) => {
+    setEventDate(newDateStr);
+    
+    // Auto-update status only if it's a new event or status_tracking is enabled
+    if (features.status_tracking) {
+        const newDate = new Date(newDateStr);
+        if (newDate > new Date()) {
+            setStatus('pending');
+        } else if (!event) {
+            // Only auto-set to completed if it's a new event
+            setStatus('completed');
+        }
+    }
+  };
 
   const handleMetadataChange = (name: string, value: any) => {
     setMetadata(prev => ({ ...prev, [name]: value }));
@@ -274,7 +301,7 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
         title: title || currentCategory.name,
         eventDate: toUTCISOString(eventDate),
         metadata: cleanMetadata,
-        status: event?.status || prefillData?.status || (features.status_tracking ? 'pending' : 'completed'),
+        status: status,
         isRecurring,
         recurrenceInterval: isRecurring ? parseInt(recurrenceInterval) : null,
         recurrenceType: isRecurring ? recurrenceType : null
@@ -320,10 +347,16 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
     });
   };
 
-  const handleMarkAsDone = async () => {
+  const toggleStatus = async () => {
+    if (!event) {
+        setStatus(prev => prev === 'completed' ? 'pending' : 'completed');
+        return;
+    }
+
     setLoading(true);
     try {
-      await api.put(`/events/${event?.id}`, { status: 'completed' });
+      const newStatus = status === 'completed' ? 'pending' : 'completed';
+      await api.put(`/events/${event.id}`, { status: newStatus });
       onSuccess();
     } catch (err) {
       console.error('Error updating status:', err);
@@ -377,17 +410,41 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
             </datalist>
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.label}>
-              <Calendar size={14} /> Data e Hora
-            </label>
-            <input
-              type="datetime-local"
-              className={styles.input}
-              value={eventDate}
-              onChange={e => setEventDate(e.target.value)}
-              required
-            />
+          <div className={styles.grid}>
+            <div className={styles.fieldGroup}>
+                <label className={styles.label}>
+                <Calendar size={14} /> Data e Hora
+                </label>
+                <input
+                type="datetime-local"
+                className={styles.input}
+                value={eventDate}
+                onChange={e => handleDateChange(e.target.value)}
+                required
+                />
+            </div>
+
+            {features.status_tracking && (
+                <div className={styles.fieldGroup}>
+                    <label className={styles.label}>Situação</label>
+                    <div className={styles.statusSelector}>
+                        <button 
+                            type="button" 
+                            className={`${styles.statusOption} ${status === 'completed' ? `${styles.active} ${styles.completed}` : ''}`}
+                            onClick={() => setStatus('completed')}
+                        >
+                            <Save size={14} /> Realizado
+                        </button>
+                        <button 
+                            type="button" 
+                            className={`${styles.statusOption} ${status === 'pending' ? `${styles.active} ${styles.pending}` : ''}`}
+                            onClick={() => setStatus('pending')}
+                        >
+                            <Calendar size={14} /> Pendente
+                        </button>
+                    </div>
+                </div>
+            )}
           </div>
 
           {/* Preset Headers */}
@@ -542,23 +599,25 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
 
           <div className={styles.actions}>
             {event?.id && (
-              <button type="button" onClick={handleDelete} className={styles.deleteButton} disabled={loading}>
-                <Trash2 size={18} /> Excluir
+              <button type="button" onClick={handleDelete} className={styles.deleteButton} title="Excluir" disabled={loading}>
+                <Trash2 size={18} />
               </button>
             )}
             <div style={{ flex: 1 }} />
-            {event?.status === 'pending' && features.status_tracking && (
-              <button type="button" onClick={handleMarkAsDone} className={styles.secondaryButton} disabled={loading}>
-                Marcar como Concluído
+            
+            {event?.id && features.status_tracking && (
+              <button type="button" onClick={toggleStatus} className={styles.secondaryButton} disabled={loading}>
+                {status === 'pending' ? 'Marcar como Concluído' : 'Reverter para Pendente'}
               </button>
             )}
+
             <button type="button" onClick={onClose} className={styles.cancelButton}>
               Cancelar
             </button>
             <button type="submit" disabled={loading} className={styles.saveButton}>
               {loading ? <Loader2 className={styles.spinner} size={18} /> : (
                 <>
-                  <Save size={18} /> Salvar Registro
+                  <Save size={18} /> Salvar
                 </>
               )}
             </button>
