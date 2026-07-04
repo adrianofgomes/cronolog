@@ -85,8 +85,17 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         return $row ? $this->mapRowToEvent($row) : null;
     }
 
-    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null, ?string $status = null): array
-    {
+    public function findByUser(
+        int $userId, 
+        ?array $categoryIds = null, 
+        ?string $categoryName = null, 
+        ?string $status = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?int $limit = null,
+        ?int $offset = null,
+        ?string $searchTerm = null
+    ): array {
         $query = "
             SELECT e.*, c.name as category_name 
             FROM events e
@@ -95,9 +104,14 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         ";
         $params = ['user_id' => $userId];
 
-        if ($categoryId !== null) {
-            $query .= " AND e.category_id = :category_id";
-            $params['category_id'] = $categoryId;
+        if (!empty($categoryIds)) {
+            $placeholders = [];
+            foreach ($categoryIds as $index => $id) {
+                $key = "cat_id_" . $index;
+                $placeholders[] = ":" . $key;
+                $params[$key] = (int) $id;
+            }
+            $query .= " AND e.category_id IN (" . implode(',', $placeholders) . ")";
         }
 
         if ($categoryName !== null) {
@@ -110,10 +124,44 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
             $params['status'] = $status;
         }
 
+        if ($startDate !== null) {
+            $query .= " AND e.event_date >= :start_date";
+            $params['start_date'] = $startDate;
+        }
+
+        if ($endDate !== null) {
+            $query .= " AND e.event_date <= :end_date";
+            $params['end_date'] = $endDate;
+        }
+
+        if (!empty($searchTerm)) {
+            $query .= " AND (e.title LIKE :search OR e.description LIKE :search OR CAST(e.metadata AS CHAR) LIKE :search OR c.name LIKE :search)";
+            $params['search'] = '%' . $searchTerm . '%';
+        }
+
         $query .= " ORDER BY e.event_date DESC";
 
+        if ($limit !== null) {
+            $query .= " LIMIT :limit";
+            $params['limit'] = (int) $limit;
+        }
+
+        if ($offset !== null) {
+            $query .= " OFFSET :offset";
+            $params['offset'] = (int) $offset;
+        }
+
         $statement = $this->connection->prepare($query);
-        $statement->execute($params);
+        
+        foreach ($params as $key => $value) {
+            if (is_int($value)) {
+                $statement->bindValue($key, $value, \PDO::PARAM_INT);
+            } else {
+                $statement->bindValue($key, $value);
+            }
+        }
+        
+        $statement->execute();
         $rows = $statement->fetchAll();
 
         $events = [];

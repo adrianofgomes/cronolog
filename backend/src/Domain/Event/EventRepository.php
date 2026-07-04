@@ -27,10 +27,25 @@ interface EventRepository
 
     /**
      * @param int $userId
-     * @param int|null $categoryId
+     * @param int[]|null $categoryIds
      * @param string|null $categoryName
      * @param string|null $status
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @param int|null $limit
+     * @param int|null $offset
+     * @param string|null $searchTerm
      * @return Event[]
      */
-    public function findByUser(int $userId, ?int $categoryId = null, ?string $categoryName = null, ?string $status = null): array;
+    public function findByUser(
+        int $userId, 
+        ?array $categoryIds = null, 
+        ?string $categoryName = null, 
+        ?string $status = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?int $limit = null,
+        ?int $offset = null,
+        ?string $searchTerm = null
+    ): array;
 }

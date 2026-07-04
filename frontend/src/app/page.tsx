@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { LogOut, Plus, Fuel, Heart, User as UserIcon, ShieldCheck, Wrench } from 'lucide-react';
+import { LogOut, Plus, Fuel, Heart, User as UserIcon, ShieldCheck, Wrench, Loader2 } from 'lucide-react';
 import styles from './dashboard.module.css';
 import DynamicEventForm from '@/components/events/DynamicEventForm';
 import EventTypeSelectorModal from '@/components/events/EventTypeSelectorModal';
@@ -13,8 +13,11 @@ import MagicBox from '@/components/events/MagicBox';
 import Timeline from '@/components/events/Timeline';
 import UpcomingEventsList from '@/components/events/UpcomingEventsList';
 import Header from '@/components/common/Header';
-import EventFilters from '@/components/events/EventFilters';
+import EventFilters, { TimeRange } from '@/components/events/EventFilters';
 import { Event, Category } from '@/types/event';
+import { subDays, formatISO, startOfDay, endOfDay } from 'date-fns';
+
+const EVENTS_PER_PAGE = 20;
 
 export default function HomePage() {
   const { user, logout, isLoading, refreshUserStatus } = useAuth();
@@ -29,25 +32,17 @@ export default function HomePage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [prefillData, setPrefillData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filters & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  const router = useRouter();
+  const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
+  const [timeRange, setTimeRange] = useState<TimeRange>('30days');
+  const [customDates, setCustomDates] = useState({ start: '', end: '' });
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Filter events based on search query and active category
-  const filteredEvents = events.filter(event => {
-    const category = categories.find(c => c.id === event.categoryId);
-    const searchTerm = searchQuery.toLowerCase();
-    
-    const matchesQuery = !searchQuery || 
-      (event.title?.toLowerCase().includes(searchTerm)) ||
-      (event.description?.toLowerCase().includes(searchTerm)) ||
-      (category?.name.toLowerCase().includes(searchTerm)) ||
-      (JSON.stringify(event.metadata).toLowerCase().includes(searchTerm));
-      
-    const matchesCategory = !activeCategoryId || String(event.categoryId) === activeCategoryId;
-    
-    return matchesQuery && matchesCategory;
-  });
+  const router = useRouter();
 
   const fetchCategories = async () => {
     try {
@@ -66,7 +61,6 @@ export default function HomePage() {
       setSelectedCategory(category);
       setShowDynamicForm(true);
     } else {
-      // Fallback if category not found (shouldn't happen if categories are loaded)
       console.error('Category not found for event:', event.categoryId);
     }
   };
@@ -97,7 +91,6 @@ export default function HomePage() {
         metadata: data.metadata
       });
     } else {
-      // If AI didn't find category, open selector but keep prefill data
       setPrefillData({
         date: data.date,
         description: data.description,
@@ -116,26 +109,92 @@ export default function HomePage() {
     setPrefillData(null);
   };
 
-  const fetchEvents = async () => {
+  const getFilterParams = (currentPage: number) => {
+    const params: any = {
+        status: 'completed',
+        limit: EVENTS_PER_PAGE,
+        page: currentPage
+    };
+
+    if (searchQuery) params.q = searchQuery;
+    if (activeCategoryIds.length > 0) params.categoryIds = activeCategoryIds.join(',');
+
+    let start: Date | null = null;
+    let end: Date | null = null;
+
+    const now = new Date();
+
+    if (timeRange === '30days') start = subDays(now, 30);
+    else if (timeRange === '3months') start = subDays(now, 90);
+    else if (timeRange === '6months') start = subDays(now, 180);
+    else if (timeRange === 'custom') {
+        if (customDates.start) start = startOfDay(new Date(customDates.start));
+        if (customDates.end) end = endOfDay(new Date(customDates.end));
+    }
+
+    if (start) params.startDate = formatISO(start);
+    if (end) params.endDate = formatISO(end);
+
+    return params;
+  };
+
+  const fetchEvents = async (reset = true) => {
     if (user?.status !== 'active') return;
+    
+    const targetPage = reset ? 1 : page + 1;
+    if (reset) {
+        setPage(1);
+        setIsFetchingMore(false);
+    } else {
+        setIsFetchingMore(true);
+    }
+
     try {
       const [completedRes, pendingRes] = await Promise.all([
-        api.get('/events', { params: { status: 'completed' } }),
-        api.get('/events', { params: { status: 'pending' } })
+        api.get('/events', { params: getFilterParams(targetPage) }),
+        reset ? api.get('/events', { params: { status: 'pending' } }) : Promise.resolve(null)
       ]);
-      setEvents(completedRes.data.data || []);
       
-      const pending = pendingRes.data.data || [];
-      setTotalPending(pending.length);
-      const sortedPending = [...pending].sort((a, b) => 
-        new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
-      );
-      setUpcomingEvents(sortedPending.slice(0, 5));
+      const newEvents = completedRes.data.data || [];
+      if (reset) {
+          setEvents(newEvents);
+      } else {
+          setEvents(prev => [...prev, ...newEvents]);
+          setPage(targetPage);
+      }
+
+      setHasMore(newEvents.length === EVENTS_PER_PAGE);
+
+      if (reset && pendingRes) {
+        const pending = pendingRes.data.data || [];
+        setTotalPending(pending.length);
+        const sortedPending = [...pending].sort((a, b) => 
+            new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+        );
+        setUpcomingEvents(sortedPending.slice(0, 5));
+      }
     } catch (err) {
       console.error('Error fetching events:', err);
       setError('Não foi possível carregar os eventos.');
+    } finally {
+        setIsFetchingMore(false);
     }
   };
+
+  useEffect(() => {
+    if (user && user.status === 'active') {
+        fetchEvents(true);
+    }
+  }, [searchQuery, activeCategoryIds, timeRange, customDates.start, customDates.end]);
+
+  useEffect(() => {
+    if (user && user.status === 'active') {
+      fetchCategories();
+    }
+    if (user && user.isAdmin) {
+      fetchPendingCount();
+    }
+  }, [user]);
 
   const fetchPendingCount = async () => {
     if (!user?.isAdmin) return;
@@ -152,18 +211,6 @@ export default function HomePage() {
       router.push('/login');
     }
   }, [user, isLoading, router]);
-
-  useEffect(() => {
-    console.log('HomePage useEffect triggered. User:', user, 'Status:', user?.status);
-    if (user && user.status === 'active') {
-      console.log('Fetching events and categories...');
-      fetchEvents();
-      fetchCategories();
-    }
-    if (user && user.isAdmin) {
-      fetchPendingCount();
-    }
-  }, [user]);
 
   if (isLoading || !user) {
     return <div className={styles.loading}>Carregando...</div>;
@@ -278,33 +325,48 @@ export default function HomePage() {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   categories={categories}
-                  activeCategoryId={activeCategoryId}
-                  onCategoryChange={setActiveCategoryId}
+                  activeCategoryIds={activeCategoryIds}
+                  onCategoryChange={setActiveCategoryIds}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  customDates={customDates}
+                  onCustomDatesChange={setCustomDates}
                 />
 
                 <UpcomingEventsList 
-                  events={upcomingEvents.filter(event => {
-                    const category = categories.find(c => c.id === event.categoryId);
-                    const searchTerm = searchQuery.toLowerCase();
-                    const matchesQuery = !searchQuery || 
-                      (event.title?.toLowerCase().includes(searchTerm)) ||
-                      (event.description?.toLowerCase().includes(searchTerm)) ||
-                      (category?.name.toLowerCase().includes(searchTerm)) ||
-                      (JSON.stringify(event.metadata).toLowerCase().includes(searchTerm));
-                    const matchesCategory = !activeCategoryId || String(event.categoryId) === activeCategoryId;
-                    return matchesQuery && matchesCategory;
-                  })} 
+                  events={upcomingEvents} 
                   totalEvents={totalPending} 
                   onEdit={handleEdit} 
                 />
 
                 <Timeline 
-                  events={filteredEvents} 
+                  events={events} 
                   onEdit={handleEdit} 
-                  isFiltered={searchQuery !== '' || activeCategoryId !== null}
-                  onClearFilters={() => { setSearchQuery(''); setActiveCategoryId(null); }}
+                  isFiltered={searchQuery !== '' || activeCategoryIds.length > 0 || timeRange !== '30days'}
+                  onClearFilters={() => { 
+                    setSearchQuery(''); 
+                    setActiveCategoryIds([]); 
+                    setTimeRange('30days');
+                    setCustomDates({ start: '', end: '' });
+                  }}
                   totalEvents={events.length}
                 />
+
+                {hasMore && (
+                    <div className={styles.loadMoreWrapper}>
+                        <button 
+                            className={styles.loadMoreButton}
+                            onClick={() => fetchEvents(false)}
+                            disabled={isFetchingMore}
+                        >
+                            {isFetchingMore ? (
+                                <><Loader2 className={styles.spinner} size={18} /> Carregando...</>
+                            ) : (
+                                'Carregar Mais Atividades'
+                            )}
+                        </button>
+                    </div>
+                )}
               </>
             )}
           </div>

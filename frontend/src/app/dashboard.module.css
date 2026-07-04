@@ -367,6 +367,51 @@
   color: #1d4ed8;
 }
 
+.loadMoreWrapper {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.loadMoreButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1.5rem;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.loadMoreButton:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+  transform: translateY(-1px);
+}
+
+.loadMoreButton:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
   .dashboardGrid {
     grid-template-columns: 1fr;

@@ -3,7 +3,6 @@
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
-  width: 100%;
 }
 
 .searchWrapper {
@@ -16,23 +15,22 @@
   position: absolute;
   left: 1rem;
   color: #9ca3af;
-  pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
-  padding: 0.75rem 2.75rem 0.75rem 2.75rem;
+  padding: 0.75rem 1rem 0.75rem 3rem;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  outline: none;
   transition: all 0.2s;
-  background-color: white;
+  background: white;
 }
 
 .searchInput:focus {
-  outline: none;
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
 .clearSearchButton {
@@ -46,99 +44,149 @@
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  border-radius: 50%;
-  transition: all 0.2s;
+  border-radius: 4px;
 }
 
 .clearSearchButton:hover {
-  background-color: #f3f4f6;
+  background: #f3f4f6;
   color: #4b5563;
 }
 
 .filterBar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  width: 100%;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.selectWrapper {
-  position: relative;
-  flex: 1;
-  max-width: 300px;
-}
-
-.selectIcon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6b7280;
-  pointer-events: none;
-}
-
-.categorySelect {
-  width: 100%;
-  padding: 0.5rem 1rem 0.5rem 2.25rem;
+.dateFilterWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: white;
-  color: #374151;
-  font-size: 0.9rem;
-  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+}
+
+.periodSelect {
+  padding: 0.4rem 0.5rem;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4b5563;
+  outline: none;
   cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1rem;
+}
+
+.customDateContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.dateInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.dateInputLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.dateInput {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #4b5563;
+  outline: none;
+}
+
+.dateInput:focus {
+  border-color: #2563eb;
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.categorySelect:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+.filterButton:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
-.categorySelect:hover {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+.filterButton.active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.categoryBadge {
+  background: #2563eb;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 99px;
+  min-width: 1.25rem;
+  text-align: center;
 }
 
 .clearButton {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  padding: 0.5rem 1rem;
   background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  color: #4b5563;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.5rem 0.8rem;
+  border: none;
   border-radius: 8px;
-  transition: all 0.2s;
-  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .clearButton:hover {
-  background-color: #fee2e2;
-  color: #dc2626;
-  border-color: #fecaca;
+  background: #e5e7eb;
+  color: #1f2937;
 }
 
 @media (max-width: 640px) {
   .filterBar {
-    flex-direction: row;
-    align-items: center;
+    width: 100%;
   }
   
-  .selectWrapper {
-    max-width: none;
+  .filterButton {
+    flex: 1;
+    justify-content: center;
   }
-
-  .searchInput {
-    font-size: 1rem;
+  
+  .clearButton {
+    width: 100%;
+    justify-content: center;
   }
 }
