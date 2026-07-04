@@ -23,6 +23,7 @@ export default function HomePage() {
   const { user, logout, isLoading, refreshUserStatus } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [totalEventsFiltered, setTotalEventsFiltered] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -155,18 +156,20 @@ export default function HomePage() {
         reset ? api.get('/events', { params: { status: 'pending' } }) : Promise.resolve(null)
       ]);
       
-      const newEvents = completedRes.data.data || [];
+      const { items: newEvents, total } = completedRes.data.data;
       if (reset) {
           setEvents(newEvents);
+          setTotalEventsFiltered(total);
       } else {
           setEvents(prev => [...prev, ...newEvents]);
           setPage(targetPage);
+          // total doesn't change on load more if filters are same
       }
 
-      setHasMore(newEvents.length === EVENTS_PER_PAGE);
+      setHasMore(events.length + newEvents.length < total);
 
       if (reset && pendingRes) {
-        const pending = pendingRes.data.data || [];
+        const { items: pending } = pendingRes.data.data;
         setTotalPending(pending.length);
         const sortedPending = [...pending].sort((a, b) => 
             new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
@@ -349,7 +352,7 @@ export default function HomePage() {
                     setTimeRange('30days');
                     setCustomDates({ start: '', end: '' });
                   }}
-                  totalEvents={events.length}
+                  totalEvents={totalEventsFiltered}
                 />
 
                 {hasMore && (

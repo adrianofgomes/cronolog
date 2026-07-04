@@ -48,4 +48,24 @@ interface EventRepository
         ?int $offset = null,
         ?string $searchTerm = null
     ): array;
+
+    /**
+     * @param int $userId
+     * @param int[]|null $categoryIds
+     * @param string|null $categoryName
+     * @param string|null $status
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @param string|null $searchTerm
+     * @return int
+     */
+    public function countByUser(
+        int $userId, 
+        ?array $categoryIds = null, 
+        ?string $categoryName = null, 
+        ?string $status = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?string $searchTerm = null
+    ): int;
 }

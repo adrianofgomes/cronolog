@@ -34,8 +34,8 @@ export default function ScheduledPage() {
         api.get('/categories')
       ]);
       
-      const pendingEvents = eventsRes.data.data || [];
-      const sortedEvents = [...pendingEvents].sort((a, b) => 
+      const { items: pendingEvents } = eventsRes.data.data;
+      const sortedEvents = [...(pendingEvents || [])].sort((a, b) => 
         new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
       );
       

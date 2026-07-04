@@ -60,6 +60,19 @@ class ListEventsAction extends Action
             $searchTerm
         );
 
-        return $this->respondWithData($events);
+        $total = $this->eventRepository->countByUser(
+            $user->getId(),
+            $categoryIds,
+            $categoryName,
+            $status,
+            $startDate,
+            $endDate,
+            $searchTerm
+        );
+
+        return $this->respondWithData([
+            'items' => $events,
+            'total' => $total
+        ]);
     }
 }

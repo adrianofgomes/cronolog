@@ -172,6 +172,67 @@ class MySqlEventRepository extends MySqlRepository implements EventRepository
         return $events;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function countByUser(
+        int $userId, 
+        ?array $categoryIds = null, 
+        ?string $categoryName = null, 
+        ?string $status = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?string $searchTerm = null
+    ): int {
+        $query = "
+            SELECT COUNT(*) 
+            FROM events e
+            LEFT JOIN categories c ON e.category_id = c.id
+            WHERE e.user_id = :user_id
+        ";
+        $params = ['user_id' => $userId];
+
+        if (!empty($categoryIds)) {
+            $placeholders = [];
+            foreach ($categoryIds as $index => $id) {
+                $key = "cat_id_" . $index;
+                $placeholders[] = ":" . $key;
+                $params[$key] = (int) $id;
+            }
+            $query .= " AND e.category_id IN (" . implode(',', $placeholders) . ")";
+        }
+
+        if ($categoryName !== null) {
+            $query .= " AND c.name = :category_name";
+            $params['category_name'] = $categoryName;
+        }
+
+        if ($status !== null) {
+            $query .= " AND e.status = :status";
+            $params['status'] = $status;
+        }
+
+        if ($startDate !== null) {
+            $query .= " AND e.event_date >= :start_date";
+            $params['start_date'] = $startDate;
+        }
+
+        if ($endDate !== null) {
+            $query .= " AND e.event_date <= :end_date";
+            $params['end_date'] = $endDate;
+        }
+
+        if (!empty($searchTerm)) {
+            $query .= " AND (e.title LIKE :search OR e.description LIKE :search OR CAST(e.metadata AS CHAR) LIKE :search OR c.name LIKE :search)";
+            $params['search'] = '%' . $searchTerm . '%';
+        }
+
+        $statement = $this->connection->prepare($query);
+        $statement->execute($params);
+        
+        return (int) $statement->fetchColumn();
+    }
+
     public function delete(int $id, int $userId): void
     {
         // First delete associated attachments to maintain integrity

@@ -142,7 +142,7 @@ export default function DynamicEventForm({ onClose, onSuccess, category, event, 
       try {
         // Fetch all events for the user to aggregate suggestions globally
         const response = await api.get('/events');
-        const events = response.data.data || [];
+        const { items: events } = response.data.data;
         
         const newSuggestions: Record<string, Set<string>> = {};
         suggestFields.forEach((fieldName: string) => {
