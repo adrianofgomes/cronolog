@@ -79,6 +79,12 @@ return function (App $app) {
         $group->group('/admin', function (Group $adminGroup) {
             $adminGroup->get('/pending', ListPendingUsersAction::class);
             $adminGroup->post('/{google_id}/approve', ApproveUserAction::class);
+            
+            // Pre-approval routes
+            $adminGroup->get('/pre-approved', \App\Application\Actions\User\ListPreApprovedUsersAction::class);
+            $adminGroup->post('/pre-approved', \App\Application\Actions\User\PreApproveEmailAction::class);
+            $adminGroup->delete('/pre-approved/{email}', \App\Application\Actions\User\RemovePreApprovalAction::class);
+
             $adminGroup->get('/attachments/orphaned', \App\Application\Actions\Admin\ListOrphanedFilesAction::class);
             $adminGroup->delete('/attachments/orphaned/{filename}', \App\Application\Actions\Admin\DeleteOrphanedFileAction::class);
             $adminGroup->get('/system-info', \App\Application\Actions\Admin\SystemInfoAction::class);

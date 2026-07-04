@@ -48,9 +48,29 @@ class LoginAction extends Action
 
         // 2. Find or Register User
         $user = $this->userRepository->findUserByGoogleId($googleId);
+        
         if (!$user) {
-            $user = new User(null, $googleId, $email, $name, false, 'pending');
-            $this->userRepository->save($user);
+            // Check if there is a pre-approved user with this email
+            $user = $this->userRepository->findUserByEmail($email);
+            
+            if ($user && $user->getStatus() === 'pre_approved') {
+                // Activate pre-approved user
+                $user = new User(
+                    $user->getId(),
+                    $googleId,
+                    $email,
+                    $name,
+                    $user->isAdmin(),
+                    'active'
+                );
+                $this->userRepository->update($user);
+            } else if (!$user) {
+                // Normal auto-registration
+                $user = new User(null, $googleId, $email, $name, false, 'pending');
+                $this->userRepository->save($user);
+            }
+            
+            // Re-fetch to ensure we have the ID and all fields
             $user = $this->userRepository->findUserByGoogleId($googleId);
         }
 

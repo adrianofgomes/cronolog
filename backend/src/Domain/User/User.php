@@ -9,7 +9,7 @@ use JsonSerializable;
 class User implements JsonSerializable
 {
     private ?int $id;
-    private string $googleId;
+    private ?string $googleId;
     private string $email;
     private ?string $name;
     private bool $isAdmin;
@@ -18,7 +18,7 @@ class User implements JsonSerializable
 
     public function __construct(
         ?int $id,
-        string $googleId,
+        ?string $googleId,
         string $email,
         ?string $name,
         bool $isAdmin = false,
@@ -49,7 +49,7 @@ class User implements JsonSerializable
         return $this->id;
     }
 
-    public function getGoogleId(): string
+    public function getGoogleId(): ?string
     {
         return $this->googleId;
     }

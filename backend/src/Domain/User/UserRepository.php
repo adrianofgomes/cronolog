@@ -25,9 +25,26 @@ interface UserRepository
     public function update(User $user): void;
 
     /**
+     * @param string $email
+     * @return User|null
+     */
+    public function findUserByEmail(string $email): ?User;
+
+    /**
      * @return User[]
      */
     public function findPendingUsers(): array;
+
+    /**
+     * @return User[]
+     */
+    public function findPreApprovedUsers(): array;
+
+    /**
+     * @param string $email
+     * @return void
+     */
+    public function deletePreApproved(string $email): void;
 
     /**
      * @param string $googleId
