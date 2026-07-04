@@ -260,6 +260,10 @@
   gap: 2rem;
 }
 
+.dashboardGrid.fullWidth {
+  grid-template-columns: 1fr;
+}
+
 .sectionTitle {
   font-size: 1.125rem;
   font-weight: 600;

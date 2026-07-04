@@ -298,7 +298,7 @@ export default function HomePage() {
           <MagicBox onParse={handleMagicParse} />
         )}
 
-        <section className={styles.dashboardGrid}>
+        <section className={`${styles.dashboardGrid} ${favorites.length === 0 ? styles.fullWidth : ''}`}>
           {favorites.length > 0 && (
             <div className={styles.quickActions}>
               <h2 className={styles.sectionTitle}>Atalhos</h2>
