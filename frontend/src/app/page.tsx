@@ -185,7 +185,7 @@ export default function HomePage() {
     if (user && user.status === 'active') {
         fetchEvents(true);
     }
-  }, [searchQuery, activeCategoryIds, timeRange, customDates.start, customDates.end]);
+  }, [user, searchQuery, activeCategoryIds, timeRange, customDates.start, customDates.end]);
 
   useEffect(() => {
     if (user && user.status === 'active') {
