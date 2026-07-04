@@ -146,6 +146,7 @@ export default function HomePage() {
     if (reset) {
         setPage(1);
         setIsFetchingMore(false);
+        setHasMore(true);
     } else {
         setIsFetchingMore(true);
     }
