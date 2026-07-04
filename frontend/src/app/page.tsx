@@ -309,7 +309,9 @@ export default function HomePage() {
                   const Icon = getIconComponent(cat.icon || 'tag');
                   return (
                     <div key={cat.id} className={styles.actionCard} onClick={() => handleAddNew(cat)}>
-                      <Icon size={24} />
+                      <div style={{ color: cat.color }}>
+                        <Icon size={24} />
+                      </div>
                       <span>{cat.name}</span>
                     </div>
                   );
