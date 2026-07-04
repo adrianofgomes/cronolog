@@ -161,13 +161,15 @@ export default function HomePage() {
       if (reset) {
           setEvents(newEvents);
           setTotalEventsFiltered(total);
+          setHasMore(newEvents.length < total);
       } else {
-          setEvents(prev => [...prev, ...newEvents]);
+          setEvents(prev => {
+              const updated = [...prev, ...newEvents];
+              setHasMore(updated.length < total);
+              return updated;
+          });
           setPage(targetPage);
-          // total doesn't change on load more if filters are same
       }
-
-      setHasMore(events.length + newEvents.length < total);
 
       if (reset && pendingRes) {
         const { items: pending } = pendingRes.data.data;
