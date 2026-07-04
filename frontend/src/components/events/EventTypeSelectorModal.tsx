@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, Loader2 } from 'lucide-react';
+import { X, Search, Loader2, Heart } from 'lucide-react';
 import styles from './EventTypeSelectorModal.module.css';
 import api from '@/lib/api';
 import { Category } from '@/types/event';
@@ -10,9 +10,16 @@ import { getIconComponent } from '@/lib/iconUtils';
 interface EventTypeSelectorModalProps {
   onClose: () => void;
   onSelect: (category: Category) => void;
+  favorites?: number[];
+  onToggleFavorite?: (categoryId: number) => void;
 }
 
-export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeSelectorModalProps) {
+export default function EventTypeSelectorModal({ 
+  onClose, 
+  onSelect,
+  favorites = [],
+  onToggleFavorite
+}: EventTypeSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,23 +117,36 @@ export default function EventTypeSelectorModal({ onClose, onSelect }: EventTypeS
                 <div className={styles.grid}>
                   {group.types.map((cat) => {
                     const Icon = getIconComponent(cat.icon || 'tag');
+                    const isFavorite = favorites.includes(cat.id);
                     return (
-                      <button
-                        key={cat.id}
-                        className={styles.typeCard}
-                        onClick={() => onSelect(cat)}
-                      >
-                        <div 
-                          className={styles.typeIcon} 
-                          style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                      <div key={cat.id} className={styles.typeWrapper}>
+                        <button
+                          className={styles.typeCard}
+                          onClick={() => onSelect(cat)}
                         >
-                          <Icon size={24} />
-                        </div>
-                        <div className={styles.typeInfo}>
-                          <span className={styles.typeLabel}>{cat.name}</span>
-                          <span className={styles.typeDescription}>{cat.metadataSchema?.description}</span>
-                        </div>
-                      </button>
+                          <div 
+                            className={styles.typeIcon} 
+                            style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                          >
+                            <Icon size={24} />
+                          </div>
+                          <div className={styles.typeInfo}>
+                            <span className={styles.typeLabel}>{cat.name}</span>
+                            <span className={styles.typeDescription}>{cat.metadataSchema?.description}</span>
+                          </div>
+                        </button>
+                        <button 
+                          className={styles.favoriteButton}
+                          onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(cat.id); }}
+                          title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        >
+                          <Heart 
+                            size={20} 
+                            fill={isFavorite ? '#ef4444' : 'none'} 
+                            color={isFavorite ? '#ef4444' : '#9ca3af'} 
+                          />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

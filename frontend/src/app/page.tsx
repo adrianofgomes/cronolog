@@ -15,6 +15,7 @@ import UpcomingEventsList from '@/components/events/UpcomingEventsList';
 import Header from '@/components/common/Header';
 import EventFilters, { TimeRange } from '@/components/events/EventFilters';
 import { Event, Category } from '@/types/event';
+import { getIconComponent } from '@/lib/iconUtils';
 import { subDays, formatISO, startOfDay, endOfDay } from 'date-fns';
 
 const EVENTS_PER_PAGE = 20;
@@ -33,6 +34,7 @@ export default function HomePage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [prefillData, setPrefillData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
   
   // Filters & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +53,25 @@ export default function HomePage() {
       setCategories(response.data.data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    try {
+        const response = await api.get('/users/me/favorites');
+        setFavorites(response.data.data || []);
+    } catch (err) {
+        console.error('Error fetching favorites:', err);
+    }
+  };
+
+  const toggleFavorite = async (categoryId: number) => {
+    try {
+        await api.post('/users/me/favorites', { categoryId });
+        await fetchFavorites(); // Refresh list
+    } catch (err) {
+        console.error('Error toggling favorite:', err);
+        alert('Erro ao atualizar favoritos.');
     }
   };
 
@@ -196,6 +217,7 @@ export default function HomePage() {
   useEffect(() => {
     if (user && user.status === 'active') {
       fetchCategories();
+      fetchFavorites();
     }
     if (user && user.isAdmin) {
       fetchPendingCount();
@@ -277,47 +299,24 @@ export default function HomePage() {
         )}
 
         <section className={styles.dashboardGrid}>
-          <div className={styles.quickActions}>
-            <h2 className={styles.sectionTitle}>Atalhos</h2>
-            <div className={styles.actionCards}>
-              <div 
-                className={`${styles.actionCard} ${styles.refuelCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => {
-                  if (!isPending && !isBlocked) {
-                    const cat = categories.find(c => c.name === 'Abastecimento');
-                    if (cat) handleAddNew(cat);
-                  }
-                }}
-              >
-                <Fuel size={24} />
-                <span>Abastecimento</span>
-              </div>
-              <div 
-                className={`${styles.actionCard} ${styles.healthCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => {
-                   if (!isPending && !isBlocked) {
-                    const cat = categories.find(c => c.name === 'Exame Médico');
-                    if (cat) handleAddNew(cat);
-                  }
-                }}
-              >
-                <Heart size={24} />
-                <span>Saúde</span>
-              </div>
-              <div 
-                className={`${styles.actionCard} ${styles.maintenanceCard} ${(isPending || isBlocked) ? styles.disabledCard : ''}`}
-                onClick={() => {
-                  if (!isPending && !isBlocked) {
-                    const cat = categories.find(c => c.name === 'Manutenção');
-                    if (cat) handleAddNew(cat);
-                  }
-                }}
-              >
-                <Wrench size={24} />
-                <span>Manutenção</span>
+          {favorites.length > 0 && (
+            <div className={styles.quickActions}>
+              <h2 className={styles.sectionTitle}>Atalhos</h2>
+              <div className={styles.actionCards}>
+                {favorites.map(catId => {
+                  const cat = categories.find(c => c.id === catId);
+                  if (!cat) return null;
+                  const Icon = getIconComponent(cat.icon || 'tag');
+                  return (
+                    <div key={cat.id} className={styles.actionCard} onClick={() => handleAddNew(cat)}>
+                      <Icon size={24} />
+                      <span>{cat.name}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.timelineSection}>
             {error && <p className={styles.errorText}>{error}</p>}
@@ -395,6 +394,8 @@ export default function HomePage() {
         <EventTypeSelectorModal
           onClose={() => setShowSelector(false)}
           onSelect={(cat) => handleAddNew(cat, prefillData)}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
         />
       )}
     </div>

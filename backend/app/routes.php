@@ -75,6 +75,10 @@ return function (App $app) {
         $group->get('/me', GetMeAction::class);
         $group->get('/{google_id}/is-admin', IsAdminAction::class);
         
+        // User Preferences
+        $group->get('/me/favorites', \App\Application\Actions\User\ListFavoritesAction::class);
+        $group->post('/me/favorites', \App\Application\Actions\User\ToggleFavoriteAction::class);
+        
         // Admin Only Routes
         $group->group('/admin', function (Group $adminGroup) {
             $adminGroup->get('/pending', ListPendingUsersAction::class);
