@@ -51,7 +51,7 @@ class CreateEventAction extends Action
             $category = $this->categoryRepository->findByName($categoryName);
             if (!$category) {
                 // Create basic category if not exists
-                $category = new Category(null, 0, $categoryName);
+                $category = new Category(null, $categoryName);
                 $id = $this->categoryRepository->save($category);
                 $category = $this->categoryRepository->findById($id);
             }

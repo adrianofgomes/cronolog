@@ -17,7 +17,7 @@ class EventActionsTest extends TestCase
     public function testCreateRefuelingEventWithPartialData()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(1, 1, 'Abastecimento');
+        $category = new Category(1, 'Abastecimento');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);
@@ -56,7 +56,7 @@ class EventActionsTest extends TestCase
     public function testCreateVaccineEvent()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(2, 1, 'Vacina');
+        $category = new Category(2, 'Vacina');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);
@@ -98,7 +98,7 @@ class EventActionsTest extends TestCase
     public function testCreateMedicationEvent()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(3, 1, 'Remédios');
+        $category = new Category(3, 'Remédios');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);
@@ -138,7 +138,7 @@ class EventActionsTest extends TestCase
     public function testCreateAppointmentEvent()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(4, 1, 'Consulta');
+        $category = new Category(4, 'Consulta');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);
@@ -177,7 +177,7 @@ class EventActionsTest extends TestCase
     public function testCreateGeneralEvent()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(5, 1, 'Geral');
+        $category = new Category(5, 'Geral');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);

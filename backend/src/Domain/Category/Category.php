@@ -9,7 +9,6 @@ use JsonSerializable;
 class Category implements JsonSerializable
 {
     private ?int $id;
-    private int $userId;
     private string $name;
     private ?string $icon;
     private ?string $color;
@@ -17,14 +16,12 @@ class Category implements JsonSerializable
 
     public function __construct(
         ?int $id,
-        int $userId,
         string $name,
         ?string $icon = null,
         ?string $color = null,
         ?array $metadataSchema = null
     ) {
         $this->id = $id;
-        $this->userId = $userId;
         $this->name = $name;
         $this->icon = $icon;
         $this->color = $color;
@@ -34,11 +31,6 @@ class Category implements JsonSerializable
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getUserId(): int
-    {
-        return $this->userId;
     }
 
     public function getName(): string
@@ -66,7 +58,6 @@ class Category implements JsonSerializable
     {
         return [
             'id' => $this->id,
-            'userId' => $this->userId,
             'name' => $this->name,
             'icon' => $this->icon,
             'color' => $this->color,

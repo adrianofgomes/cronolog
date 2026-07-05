@@ -83,7 +83,6 @@ class MySqlCategoryRepository extends MySqlRepository implements CategoryReposit
     {
         return new Category(
             (int) $row['id'],
-            0, // user_id não existe mais
             $row['name'],
             $row['icon'],
             $row['color'],

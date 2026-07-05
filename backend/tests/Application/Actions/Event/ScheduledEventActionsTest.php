@@ -18,7 +18,7 @@ class ScheduledEventActionsTest extends TestCase
     public function testCreateScheduledEvent()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(6, 1, 'Conta a Pagar');
+        $category = new Category(6, 'Conta a Pagar');
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($user);
@@ -65,7 +65,7 @@ class ScheduledEventActionsTest extends TestCase
     public function testCompleteRecurringEventCreatesNextOne()
     {
         $user = new User(1, '123456789', 'admin@example.com', 'Admin User', true, 'active');
-        $category = new Category(6, 1, 'Conta a Pagar');
+        $category = new Category(6, 'Conta a Pagar');
         $date = new DateTime('2026-06-14 10:00:00');
         
         $pendingEvent = new Event(
