@@ -82,7 +82,9 @@ return function (App $app) {
         // Admin Only Routes
         $group->group('/admin', function (Group $adminGroup) {
             $adminGroup->get('/pending', ListPendingUsersAction::class);
+            $adminGroup->get('/stats', \App\Application\Actions\User\ListUsersWithStatsAction::class);
             $adminGroup->post('/{google_id}/approve', ApproveUserAction::class);
+            $adminGroup->post('/{id}/reject', \App\Application\Actions\User\RejectUserAction::class);
             
             // Pre-approval routes
             $adminGroup->get('/pre-approved', \App\Application\Actions\User\ListPreApprovedUsersAction::class);

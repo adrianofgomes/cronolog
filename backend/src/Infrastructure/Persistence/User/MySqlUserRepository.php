@@ -170,4 +170,31 @@ class MySqlUserRepository extends MySqlRepository implements UserRepository
             'google_id' => $googleId,
         ]);
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function findAllWithEventStats(): array
+    {
+        $query = "
+            SELECT u.id, u.name, u.email, u.status, 
+                   COUNT(e.id) as event_count, 
+                   MAX(e.created_at) as last_event_at
+            FROM users u
+            LEFT JOIN events e ON u.id = e.user_id
+            GROUP BY u.id
+        ";
+        $statement = $this->connection->query($query);
+        return $statement->fetchAll();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteUser(int $userId): void
+    {
+        $query = "DELETE FROM users WHERE id = :id";
+        $statement = $this->connection->prepare($query);
+        $statement->execute(['id' => $userId]);
+    }
 }

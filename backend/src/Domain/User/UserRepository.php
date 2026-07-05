@@ -52,4 +52,13 @@ interface UserRepository
      * @return void
      */
     public function updateStatus(string $googleId, string $status): void;
+    /**
+     * @return array
+     */
+    public function findAllWithEventStats(): array;
+
+    /**
+     * @param int $userId
+     */
+    public function deleteUser(int $userId): void;
 }
