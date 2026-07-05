@@ -43,17 +43,17 @@ class CreateEventAction extends Action
 
         // Find or Create Category
         if ($categoryId) {
-            $category = $this->categoryRepository->findByIdAndUser((int) $categoryId, $user->getId());
+            $category = $this->categoryRepository->findById((int) $categoryId);
             if (!$category) {
                 throw new HttpBadRequestException($this->request, 'Invalid Category ID.');
             }
         } else {
-            $category = $this->categoryRepository->findByNameAndUser($categoryName, $user->getId());
+            $category = $this->categoryRepository->findByName($categoryName);
             if (!$category) {
                 // Create basic category if not exists
-                $category = new Category(null, $user->getId(), $categoryName);
+                $category = new Category(null, 0, $categoryName);
                 $id = $this->categoryRepository->save($category);
-                $category = $this->categoryRepository->findByIdAndUser($id, $user->getId());
+                $category = $this->categoryRepository->findById($id);
             }
         }
 

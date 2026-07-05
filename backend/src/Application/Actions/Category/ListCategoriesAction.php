@@ -21,8 +21,7 @@ class ListCategoriesAction extends Action
 
     protected function action(): Response
     {
-        $user = $this->request->getAttribute('authenticated_user');
-        $categories = $this->categoryRepository->findByUser($user->getId());
+        $categories = $this->categoryRepository->findAll();
 
         return $this->respondWithData($categories);
     }

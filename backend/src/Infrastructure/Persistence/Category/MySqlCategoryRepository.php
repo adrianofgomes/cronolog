@@ -10,11 +10,10 @@ use App\Infrastructure\Persistence\MySqlRepository;
 
 class MySqlCategoryRepository extends MySqlRepository implements CategoryRepository
 {
-    public function findByUser(int $userId): array
+    public function findAll(): array
     {
-        $query = "SELECT id, user_id, name, icon, color, metadata_schema FROM categories WHERE user_id = :user_id";
-        $statement = $this->connection->prepare($query);
-        $statement->execute(['user_id' => $userId]);
+        $query = "SELECT id, name, icon, color, metadata_schema FROM categories";
+        $statement = $this->connection->query($query);
         $rows = $statement->fetchAll();
 
         $categories = [];
@@ -25,21 +24,21 @@ class MySqlCategoryRepository extends MySqlRepository implements CategoryReposit
         return $categories;
     }
 
-    public function findByIdAndUser(int $id, int $userId): ?Category
+    public function findById(int $id): ?Category
     {
-        $query = "SELECT id, user_id, name, icon, color, metadata_schema FROM categories WHERE id = :id AND user_id = :user_id";
+        $query = "SELECT id, name, icon, color, metadata_schema FROM categories WHERE id = :id";
         $statement = $this->connection->prepare($query);
-        $statement->execute(['id' => $id, 'user_id' => $userId]);
+        $statement->execute(['id' => $id]);
         $row = $statement->fetch();
 
         return $row ? $this->mapRowToCategory($row) : null;
     }
 
-    public function findByNameAndUser(string $name, int $userId): ?Category
+    public function findByName(string $name): ?Category
     {
-        $query = "SELECT id, user_id, name, icon, color, metadata_schema FROM categories WHERE name = :name AND user_id = :user_id";
+        $query = "SELECT id, name, icon, color, metadata_schema FROM categories WHERE name = :name";
         $statement = $this->connection->prepare($query);
-        $statement->execute(['name' => $name, 'user_id' => $userId]);
+        $statement->execute(['name' => $name]);
         $row = $statement->fetch();
 
         return $row ? $this->mapRowToCategory($row) : null;
@@ -51,11 +50,10 @@ class MySqlCategoryRepository extends MySqlRepository implements CategoryReposit
             $query = "
                 UPDATE categories 
                 SET name = :name, icon = :icon, color = :color, metadata_schema = :metadata_schema
-                WHERE id = :id AND user_id = :user_id
+                WHERE id = :id
             ";
             $params = [
                 'id' => $category->getId(),
-                'user_id' => $category->getUserId(),
                 'name' => $category->getName(),
                 'icon' => $category->getIcon(),
                 'color' => $category->getColor(),
@@ -67,11 +65,10 @@ class MySqlCategoryRepository extends MySqlRepository implements CategoryReposit
         }
 
         $query = "
-            INSERT INTO categories (user_id, name, icon, color, metadata_schema)
-            VALUES (:user_id, :name, :icon, :color, :metadata_schema)
+            INSERT INTO categories (name, icon, color, metadata_schema)
+            VALUES (:name, :icon, :color, :metadata_schema)
         ";
         $params = [
-            'user_id' => $category->getUserId(),
             'name' => $category->getName(),
             'icon' => $category->getIcon(),
             'color' => $category->getColor(),
@@ -86,7 +83,7 @@ class MySqlCategoryRepository extends MySqlRepository implements CategoryReposit
     {
         return new Category(
             (int) $row['id'],
-            (int) $row['user_id'],
+            0, // user_id não existe mais
             $row['name'],
             $row['icon'],
             $row['color'],

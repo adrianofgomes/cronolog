@@ -6,6 +6,7 @@ namespace App\Tests\Application\Actions\Auth;
 
 use App\Domain\User\User;
 use App\Domain\User\UserRepository;
+use App\Domain\Category\CategoryRepository;
 use App\Tests\TestCase;
 use Firebase\JWT\JWT;
 use App\Application\Settings\SettingsInterface;
@@ -33,8 +34,12 @@ class LoginActionTest extends TestCase
         
         $mockUserRepository->method('findUserByGoogleId')->willReturn($mockUser);
 
+        // Mock CategoryRepository
+        $mockCategoryRepository = $this->getMockBuilder(CategoryRepository::class)->getMock();
+
         // Set dependencies
         $container->set(UserRepository::class, $mockUserRepository);
+        $container->set(CategoryRepository::class, $mockCategoryRepository);
 
         // Create request
         $request = $this->createRequest('POST', '/auth/login');

@@ -23,7 +23,7 @@ class EventActionsTest extends TestCase
         $userRepository->method('findUserByGoogleId')->willReturn($user);
 
         $categoryRepository = $this->createMock(CategoryRepository::class);
-        $categoryRepository->method('findByNameAndUser')->willReturn($category);
+        $categoryRepository->method('findByName')->willReturn($category);
 
         $eventRepository = $this->createMock(EventRepository::class);
         $eventRepository->method('save')->willReturn(1);
@@ -62,7 +62,7 @@ class EventActionsTest extends TestCase
         $userRepository->method('findUserByGoogleId')->willReturn($user);
 
         $categoryRepository = $this->createMock(CategoryRepository::class);
-        $categoryRepository->method('findByNameAndUser')->willReturn($category);
+        $categoryRepository->method('findByName')->willReturn($category);
 
         $eventRepository = $this->createMock(EventRepository::class);
         $eventRepository->method('save')->willReturn(1);
@@ -104,7 +104,7 @@ class EventActionsTest extends TestCase
         $userRepository->method('findUserByGoogleId')->willReturn($user);
 
         $categoryRepository = $this->createMock(CategoryRepository::class);
-        $categoryRepository->method('findByNameAndUser')->willReturn($category);
+        $categoryRepository->method('findByName')->willReturn($category);
 
         $eventRepository = $this->createMock(EventRepository::class);
         $eventRepository->method('save')->willReturn(1);
@@ -144,7 +144,7 @@ class EventActionsTest extends TestCase
         $userRepository->method('findUserByGoogleId')->willReturn($user);
 
         $categoryRepository = $this->createMock(CategoryRepository::class);
-        $categoryRepository->method('findByNameAndUser')->willReturn($category);
+        $categoryRepository->method('findByName')->willReturn($category);
 
         $eventRepository = $this->createMock(EventRepository::class);
         $eventRepository->method('save')->willReturn(1);
@@ -183,7 +183,7 @@ class EventActionsTest extends TestCase
         $userRepository->method('findUserByGoogleId')->willReturn($user);
 
         $categoryRepository = $this->createMock(CategoryRepository::class);
-        $categoryRepository->method('findByNameAndUser')->willReturn($category);
+        $categoryRepository->method('findByName')->willReturn($category);
 
         $eventRepository = $this->createMock(EventRepository::class);
         $eventRepository->method('save')->willReturn(1);

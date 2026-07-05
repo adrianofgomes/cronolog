@@ -7,24 +7,21 @@ namespace App\Domain\Category;
 interface CategoryRepository
 {
     /**
-     * @param int $userId
      * @return Category[]
      */
-    public function findByUser(int $userId): array;
+    public function findAll(): array;
 
     /**
      * @param int $id
-     * @param int $userId
      * @return Category|null
      */
-    public function findByIdAndUser(int $id, int $userId): ?Category;
+    public function findById(int $id): ?Category;
 
     /**
      * @param string $name
-     * @param int $userId
      * @return Category|null
      */
-    public function findByNameAndUser(string $name, int $userId): ?Category;
+    public function findByName(string $name): ?Category;
 
     /**
      * @param Category $category
