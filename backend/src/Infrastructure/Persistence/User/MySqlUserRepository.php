@@ -191,6 +191,19 @@ class MySqlUserRepository extends MySqlRepository implements UserRepository
     /**
      * {@inheritdoc}
      */
+    public function updateStatusById(int $userId, string $status): void
+    {
+        $query = "UPDATE users SET status = :status WHERE id = :id";
+        $statement = $this->connection->prepare($query);
+        $statement->execute([
+            'status' => $status,
+            'id' => $userId,
+        ]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deleteUser(int $userId): void
     {
         $query = "DELETE FROM users WHERE id = :id";

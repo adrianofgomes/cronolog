@@ -61,4 +61,9 @@ interface UserRepository
      * @param int $userId
      */
     public function deleteUser(int $userId): void;
+    /**
+     * @param int $userId
+     * @param string $status
+     */
+    public function updateStatusById(int $userId, string $status): void;
 }

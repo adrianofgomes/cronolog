@@ -53,6 +53,10 @@ class LoginAction extends Action
             // Check if there is a pre-approved user with this email
             $user = $this->userRepository->findUserByEmail($email);
             
+            if ($user && $user->getStatus() === 'rejected') {
+                throw new HttpUnauthorizedException($this->request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
+            }
+            
             if ($user && $user->getStatus() === 'pre_approved') {
                 // Activate pre-approved user
                 $user = new User(
@@ -72,6 +76,8 @@ class LoginAction extends Action
             
             // Re-fetch to ensure we have the ID and all fields
             $user = $this->userRepository->findUserByGoogleId($googleId);
+        } else if ($user->getStatus() === 'rejected') {
+            throw new HttpUnauthorizedException($this->request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
         }
 
         // 3. Generate Long-Lived Cronolog JWT

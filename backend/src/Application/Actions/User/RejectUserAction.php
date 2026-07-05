@@ -23,9 +23,9 @@ class RejectUserAction extends Action
     {
         $userId = (int) $this->resolveArg('id');
         
-        $this->userRepository->deleteUser($userId);
-        $this->logger->info("Admin rejected and deleted user: $userId");
+        $this->userRepository->updateStatusById($userId, 'rejected');
+        $this->logger->info("Admin rejected user: $userId");
 
-        return $this->respondWithData(['message' => 'User rejected and deleted successfully.'], 200);
+        return $this->respondWithData(['message' => 'User rejected successfully.'], 200);
     }
 }

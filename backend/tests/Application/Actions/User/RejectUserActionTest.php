@@ -16,7 +16,7 @@ class RejectUserActionTest extends TestCase
 
         $userRepository = $this->createMock(UserRepository::class);
         $userRepository->method('findUserByGoogleId')->willReturn($admin);
-        $userRepository->expects($this->once())->method('deleteUser')->with(5);
+        $userRepository->expects($this->once())->method('updateStatusById')->with(5, 'rejected');
 
         $app = $this->getAppInstance([
             UserRepository::class => $userRepository,
