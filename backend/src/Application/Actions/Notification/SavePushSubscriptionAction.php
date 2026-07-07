@@ -46,10 +46,13 @@ class SavePushSubscriptionAction extends Action
             $keys['auth']
         );
 
-        $this->pushSubscriptionRepository->save($subscription);
-
-        $this->logger->info("Inscrição push salva para o usuário ID: $userId");
-
-        return $this->respondWithData(['status' => 'success']);
+        try {
+            $this->pushSubscriptionRepository->save($subscription);
+            $this->logger->info("Inscrição push salva para o usuário ID: $userId");
+            return $this->respondWithData(['status' => 'success']);
+        } catch (\Exception $e) {
+            $this->logger->error("Erro ao salvar inscrição push: " . $e->getMessage());
+            throw new \RuntimeException("Erro interno ao salvar inscrição: " . $e->getMessage());
+        }
     }
 }
