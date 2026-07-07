@@ -3,7 +3,9 @@ import withPWAInit from "@ducanh2912/next-pwa";
 
 const withPWA = withPWAInit({
   dest: "public",
-  // Desativar cache agressivo para garantir que o cliente pegue novos arquivos
+  sw: "sw.js",
+  // Usar o arquivo personalizado para manter as notificações push
+  customWorkerDir: "src/worker",
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
