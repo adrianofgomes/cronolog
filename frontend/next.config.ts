@@ -5,7 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   sw: "sw.js",
   // Usar o arquivo personalizado para manter as notificações push
-  customWorkerDir: "src/worker",
+  customWorkerSrc: "src/worker",
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
