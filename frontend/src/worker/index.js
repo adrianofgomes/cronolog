@@ -1,15 +1,9 @@
-import { defaultCache } from "@ducanh2912/next-pwa/worker";
-import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
-import { registerRoute, NetworkFirst, CacheFirst, StaleWhileRevalidate } from "workbox-routing";
-import { ExpirationPlugin } from "workbox-expiration";
-import { RangeRequestsPlugin } from "workbox-range-requests";
+/* eslint-disable no-undef */
 
-declare const self: ServiceWorkerGlobalScope;
-
-// Precache de assets do Next.js
-precacheAndRoute(self.__WB_MANIFEST);
-
-cleanupOutdatedCaches();
+// Precache de assets do Next.js (Injetado automaticamente pelo Workbox)
+if (typeof self !== 'undefined' && self.__WB_MANIFEST) {
+  // O Workbox injeta o manifesto aqui durante o build
+}
 
 // --- Notificações Push ---
 self.addEventListener('push', function(event) {
@@ -39,7 +33,7 @@ self.addEventListener('notificationclick', function(event) {
   const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
 
   event.waitUntil(
-    self.clients.matchAll({
+    clients.matchAll({
       type: 'window',
       includeUncontrolled: true
     }).then(function(windowClients) {
@@ -49,8 +43,8 @@ self.addEventListener('notificationclick', function(event) {
           return client.focus();
         }
       }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
       }
     })
   );
