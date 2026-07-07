@@ -28,7 +28,9 @@ class SavePushSubscriptionAction extends Action
      */
     protected function action(): Response
     {
-        $userId = (int) $this->request->getAttribute('user_id');
+        /** @var \App\Domain\User\User $user */
+        $user = $this->request->getAttribute('authenticated_user');
+        $userId = $user->getId();
         $data = $this->getFormData();
 
         $endpoint = $data['endpoint'] ?? null;
