@@ -10,6 +10,7 @@ use App\Domain\Category\CategoryRepository;
 use App\Tests\TestCase;
 use Firebase\JWT\JWT;
 use App\Application\Settings\SettingsInterface;
+use App\Infrastructure\Notification\WebPushService;
 
 class LoginActionTest extends TestCase
 {
@@ -34,12 +35,18 @@ class LoginActionTest extends TestCase
         
         $mockUserRepository->method('findUserByGoogleId')->willReturn($mockUser);
 
+        // Mock WebPushService
+        $mockWebPushService = $this->getMockBuilder(WebPushService::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         // Mock CategoryRepository
         $mockCategoryRepository = $this->getMockBuilder(CategoryRepository::class)->getMock();
 
         // Set dependencies
         $container->set(UserRepository::class, $mockUserRepository);
         $container->set(CategoryRepository::class, $mockCategoryRepository);
+        $container->set(WebPushService::class, $mockWebPushService);
 
         // Create request
         $request = $this->createRequest('POST', '/auth/login');

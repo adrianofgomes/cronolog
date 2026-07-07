@@ -71,6 +71,10 @@ return function (App $app) {
         $group->delete('/{id}/attachments/{attId}', DeleteAttachmentAction::class);
     })->add(AuthMiddleware::class);
 
+    $app->group('/notifications', function (Group $group) {
+        $group->post('/subscribe', \App\Application\Actions\Notification\SavePushSubscriptionAction::class);
+    })->add(\App\Application\Middleware\AuthMiddleware::class);
+
     $app->group('/users', function (Group $group) {
         $group->get('/me', GetMeAction::class);
         $group->get('/{google_id}/is-admin', IsAdminAction::class);

@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import api from '@/lib/api';
-import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info, Sparkles, UserPlus, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info, Sparkles, UserPlus, Plus, Loader2, Bell, BellOff } from 'lucide-react';
 import Link from 'next/link';
 import styles from './admin.module.css';
 import Header from '@/components/common/Header';
@@ -38,6 +39,7 @@ interface SystemInfo {
 
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
+  const { isSubscribed, subscribe, isLoading: pushLoading, permission } = usePushNotifications();
   const router = useRouter();
   const [pendingUsers, setPendingUsers] = useState<UserInfo[]>([]);
   const [preApprovedUsers, setPreApprovedUsers] = useState<UserInfo[]>([]);
@@ -173,6 +175,24 @@ export default function AdminPage() {
           </Link>
           <div className={styles.titleGroup}>
             <h1 className={styles.title}>Painel Administrativo</h1>
+          </div>
+          <div className={styles.pushStatus}>
+            {!isSubscribed ? (
+              <button 
+                className={styles.pushEnableButton} 
+                onClick={subscribe}
+                disabled={pushLoading || permission === 'denied'}
+                title={permission === 'denied' ? 'Notificações bloqueadas no navegador' : 'Ativar notificações push'}
+              >
+                {pushLoading ? <Loader2 size={16} className={styles.spinner} /> : <BellOff size={16} />}
+                <span>Ativar Alertas</span>
+              </button>
+            ) : (
+              <div className={styles.pushActive} title="Notificações push ativadas">
+                <Bell size={16} />
+                <span>Alertas Ativos</span>
+              </div>
+            )}
           </div>
         </div>
 

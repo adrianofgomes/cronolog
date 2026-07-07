@@ -8,6 +8,7 @@ use App\Application\Actions\Action;
 use App\Application\Settings\SettingsInterface;
 use App\Domain\User\User;
 use App\Domain\User\UserRepository;
+use App\Infrastructure\Notification\WebPushService;
 use Firebase\JWT\JWT;
 use Google\Auth\AccessToken;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -20,12 +21,18 @@ class LoginAction extends Action
 {
     private UserRepository $userRepository;
     private SettingsInterface $settings;
+    private WebPushService $webPushService;
 
-    public function __construct(LoggerInterface $logger, UserRepository $userRepository, SettingsInterface $settings)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        UserRepository $userRepository,
+        SettingsInterface $settings,
+        WebPushService $webPushService
+    ) {
         parent::__construct($logger);
         $this->userRepository = $userRepository;
         $this->settings = $settings;
+        $this->webPushService = $webPushService;
     }
 
     protected function action(): Response
@@ -72,6 +79,17 @@ class LoginAction extends Action
                 // Normal auto-registration
                 $user = new User(null, $googleId, $email, $name, false, 'pending');
                 $this->userRepository->save($user);
+                
+                // Notifica administradores sobre novo usuário pendente
+                try {
+                    $this->webPushService->notifyAdmins(
+                        "Novo Usuário Pendente",
+                        "O usuário $name ($email) acabou de se cadastrar e aguarda aprovação.",
+                        "/admin"
+                    );
+                } catch (Exception $e) {
+                    $this->logger->error("Erro ao notificar admins: " . $e->getMessage());
+                }
             }
             
             // Re-fetch to ensure we have the ID and all fields

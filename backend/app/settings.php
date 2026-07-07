@@ -40,6 +40,11 @@ return function (ContainerBuilder $containerBuilder) {
                     'secret' => $_ENV['JWT_SECRET'] ?? 'default_secret_change_me',
                     'expires_days' => (int) ($_ENV['JWT_EXPIRES_DAYS'] ?? 30),
                 ],
+                'vapid' => [
+                    'public_key' => $_ENV['VAPID_PUBLIC_KEY'] ?? '',
+                    'private_key' => $_ENV['VAPID_PRIVATE_KEY'] ?? '',
+                    'subject' => $_ENV['VAPID_SUBJECT'] ?? 'mailto:admin@cronolog.com.br',
+                ],
             ]);
         }
     ]);
