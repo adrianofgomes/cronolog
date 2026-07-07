@@ -7,7 +7,10 @@
 
 set -e
 
-# Carregar variáveis do .env se existir
+# Carregar variáveis do .env (carrega do root e depois sobrescreve com o local se existir)
+if [ -f ../.env ]; then
+    export $(grep -v '^#' ../.env | xargs)
+fi
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
