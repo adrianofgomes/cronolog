@@ -21,11 +21,16 @@ class RejectUserAction extends Action
 
     protected function action(): Response
     {
-        $userId = (int) $this->resolveArg('id');
-        
-        $this->userRepository->updateStatusById($userId, 'rejected');
-        $this->logger->info("Admin rejected user: $userId");
+        try {
+            $userId = (int) $this->resolveArg('id');
+            
+            $this->userRepository->updateStatusById($userId, 'rejected');
+            $this->logger->info("Admin rejected user: $userId");
 
-        return $this->respondWithData(['message' => 'User rejected successfully.'], 200);
+            return $this->respondWithData(['message' => 'User rejected successfully.'], 200);
+        } catch (\Exception $e) {
+            $this->logger->error("Erro ao rejeitar usuário: " . $e->getMessage());
+            throw new \RuntimeException("Erro ao processar rejeição: " . $e->getMessage());
+        }
     }
 }
