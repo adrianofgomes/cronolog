@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import api from '@/lib/api';
-import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info, Sparkles, UserPlus, Plus, Loader2, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, UserCheck, FileWarning, Trash2, Settings, Server, Database, Info, Sparkles, UserPlus, Plus, Loader2, Bell, BellOff, Users, UserX, Calendar, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import styles from './admin.module.css';
 import Header from '@/components/common/Header';
@@ -19,6 +19,11 @@ interface UserInfo {
   name: string | null;
   isAdmin: boolean;
   status: string;
+}
+
+interface UserStatsInfo extends UserInfo {
+  event_count: number;
+  last_event_at: string | null;
 }
 
 interface SystemInfo {
@@ -43,26 +48,29 @@ export default function AdminPage() {
   const router = useRouter();
   const [pendingUsers, setPendingUsers] = useState<UserInfo[]>([]);
   const [preApprovedUsers, setPreApprovedUsers] = useState<UserInfo[]>([]);
+  const [statsUsers, setStatsUsers] = useState<UserStatsInfo[]>([]);
   const [orphanedFiles, setOrphanedFiles] = useState<string[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'pending' | 'pre_approved' | 'system' | 'cleanup'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'users' | 'pre_approved' | 'system' | 'cleanup'>('pending');
   const [newEmail, setNewEmail] = useState('');
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   const fetchAdminData = async () => {
     try {
       setIsFetching(true);
-      const [pendingRes, preApprovedRes, filesRes, infoRes] = await Promise.all([
+      const [pendingRes, preApprovedRes, statsRes, filesRes, infoRes] = await Promise.all([
         api.get('/users/admin/pending'),
         api.get('/users/admin/pre-approved'),
+        api.get('/users/admin/stats'),
         api.get('/users/admin/attachments/orphaned'),
         api.get('/users/admin/system-info')
       ]);
       setPendingUsers(pendingRes.data.data || []);
       setPreApprovedUsers(preApprovedRes.data.data || []);
+      setStatsUsers(statsRes.data.data || []);
       setOrphanedFiles(filesRes.data.data || []);
       setSystemInfo(infoRes.data.data || null);
       setError(null);
@@ -91,12 +99,35 @@ export default function AdminPage() {
       setActionLoading(googleId);
       await api.post(`/users/admin/${googleId}/approve`, { status: 'active' });
       setPendingUsers(prev => prev.filter(u => u.googleId !== googleId));
+      fetchAdminData();
     } catch (err) {
       console.error('Error approving user:', err);
       alert('Erro ao aprovar usuário.');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleReject = async (id: number) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Rejeitar usuário',
+      message: 'Tem certeza que deseja rejeitar este cadastro? O usuário receberá uma mensagem informando que não foi possível aprovar no momento.',
+      onConfirm: async () => {
+        try {
+          setActionLoading(String(id));
+          await api.post(`/users/admin/${id}/reject`);
+          setPendingUsers(prev => prev.filter(u => u.id !== id));
+          fetchAdminData();
+        } catch (err) {
+          console.error('Error rejecting user:', err);
+          alert('Erro ao rejeitar usuário.');
+        } finally {
+          setActionLoading(null);
+          setModalConfig(null);
+        }
+      }
+    });
   };
 
   const handlePreApprove = async (e: React.FormEvent) => {
@@ -177,22 +208,25 @@ export default function AdminPage() {
             <h1 className={styles.title}>Painel Administrativo</h1>
           </div>
           <div className={styles.pushStatus}>
-            {!isSubscribed ? (
-              <button 
-                className={styles.pushEnableButton} 
-                onClick={subscribe}
-                disabled={pushLoading || permission === 'denied'}
-                title={permission === 'denied' ? 'Notificações bloqueadas no navegador' : 'Ativar notificações push'}
-              >
-                {pushLoading ? <Loader2 size={16} className={styles.spinner} /> : <BellOff size={16} />}
-                <span>Ativar Alertas</span>
-              </button>
-            ) : (
-              <div className={styles.pushActive} title="Notificações push ativadas">
-                <Bell size={16} />
-                <span>Alertas Ativos</span>
-              </div>
-            )}
+            <button 
+              className={isSubscribed ? styles.pushActiveButton : styles.pushEnableButton} 
+              onClick={subscribe}
+              disabled={pushLoading || permission === 'denied'}
+              title={
+                permission === 'denied' 
+                  ? 'Notificações bloqueadas no navegador' 
+                  : isSubscribed 
+                    ? 'Alertas ativos. Clique para atualizar a inscrição se necessário.' 
+                    : 'Ativar notificações push'
+              }
+            >
+              {pushLoading ? (
+                <Loader2 size={16} className={styles.spinner} />
+              ) : (
+                isSubscribed ? <Bell size={16} /> : <BellOff size={16} />
+              )}
+              <span>{isSubscribed ? 'Alertas Ativos' : 'Ativar Alertas'}</span>
+            </button>
           </div>
         </div>
 
@@ -202,6 +236,12 @@ export default function AdminPage() {
             onClick={() => setActiveTab('pending')}
           >
             Pendentes ({pendingUsers.length})
+          </button>
+          <button 
+            className={`${styles.tabButton} ${activeTab === 'users' ? styles.active : ''}`}
+            onClick={() => setActiveTab('users')}
+          >
+            Usuários ({statsUsers.length})
           </button>
           <button 
             className={`${styles.tabButton} ${activeTab === 'pre_approved' ? styles.active : ''}`}
@@ -253,11 +293,59 @@ export default function AdminPage() {
                       >
                         {actionLoading === u.googleId ? 'Aprovando...' : 'Aprovar'}
                       </button>
+                      <button 
+                        className={styles.rejectButton}
+                        onClick={() => handleReject(u.id!)}
+                        disabled={actionLoading === String(u.id)}
+                        title="Rejeitar cadastro"
+                      >
+                        {actionLoading === String(u.id) ? 'Rejeitando...' : 'Rejeitar'}
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {activeTab === 'users' && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Consulta de Usuários</h2>
+            <div className={styles.statsList}>
+              {statsUsers.length === 0 ? (
+                <div className={styles.noUsers}>Nenhum usuário registrado.</div>
+              ) : (
+                statsUsers.map(u => (
+                  <div key={u.id} className={styles.statsCard}>
+                    <div className={styles.statsMain}>
+                      <div className={styles.statsInfo}>
+                        <div className={styles.userAvatar}>
+                          <Users size={20} />
+                        </div>
+                        <div className={styles.userDetails}>
+                          <h3>{u.name || 'Sem Nome'}</h3>
+                          <p>{u.email}</p>
+                          <span className={`${styles.statusBadge} ${styles[u.status]}`}>
+                            {u.status === 'active' ? 'Ativo' : u.status === 'pending' ? 'Pendente' : u.status === 'rejected' ? 'Rejeitado' : u.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.statsMetrics}>
+                        <div className={styles.metricItem}>
+                          <BarChart3 size={16} />
+                          <span><strong>{u.event_count}</strong> eventos</span>
+                        </div>
+                        <div className={styles.metricItem}>
+                          <Calendar size={16} />
+                          <span>Último: {u.last_event_at ? toDateTimeLocal(new Date(u.last_event_at)).split('T')[0] : 'Nunca'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </section>
         )}
 

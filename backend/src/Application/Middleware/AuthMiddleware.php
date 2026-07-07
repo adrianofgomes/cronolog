@@ -68,6 +68,8 @@ class AuthMiddleware implements MiddlewareInterface
         if (!$user->isActive() && !$isMeRoute) {
             if ($user->getStatus() === 'pending') {
                 throw new HttpForbiddenException($request, 'Cadastro em validação. Aguarde a aprovação de um administrador.');
+            } elseif ($user->getStatus() === 'rejected') {
+                throw new HttpForbiddenException($request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
             } else {
                 throw new HttpForbiddenException($request, 'Sua conta está bloqueada. Entre em contato com o suporte.');
             }
