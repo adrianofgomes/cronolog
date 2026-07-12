@@ -41,7 +41,7 @@ class UpdateEventAction extends Action
         }
 
         if (isset($data['categoryId'])) {
-            $category = $this->categoryRepository->findByIdAndUser((int) $data['categoryId'], $user->getId());
+            $category = $this->categoryRepository->findById((int) $data['categoryId']);
             if (!$category) {
                 throw new HttpBadRequestException($this->request, 'Invalid Category ID.');
             }
@@ -53,22 +53,32 @@ class UpdateEventAction extends Action
         }
 
         if (isset($data['eventDate'])) {
-            $event->setEventDate(new DateTime($data['eventDate']));
+            try {
+                $event->setEventDate(new DateTime($data['eventDate']));
+            } catch (\Exception $e) {
+                throw new HttpBadRequestException($this->request, 'Invalid event date format.');
+            }
         }
 
-        if (isset($data['profileId'])) {
-            $event->setProfileId((int) $data['profileId']);
+        if (array_key_exists('profileId', $data)) {
+            $event->setProfileId($data['profileId'] !== null ? (int) $data['profileId'] : null);
         }
 
         if (array_key_exists('description', $data)) {
             $event->setDescription($data['description']);
         }
 
-        if (isset($data['metadata'])) {
+        if (array_key_exists('metadata', $data)) {
+            if ($data['metadata'] !== null && !is_array($data['metadata'])) {
+                throw new HttpBadRequestException($this->request, 'Metadata must be an array or null.');
+            }
             $event->setMetadata($data['metadata']);
         }
 
-        if (isset($data['tags'])) {
+        if (array_key_exists('tags', $data)) {
+            if ($data['tags'] !== null && !is_array($data['tags'])) {
+                throw new HttpBadRequestException($this->request, 'Tags must be an array or null.');
+            }
             $event->setTags($data['tags']);
         }
 
@@ -81,11 +91,11 @@ class UpdateEventAction extends Action
             $event->setIsRecurring((bool) $data['isRecurring']);
         }
 
-        if (isset($data['recurrenceInterval'])) {
-            $event->setRecurrenceInterval((int) $data['recurrenceInterval']);
+        if (array_key_exists('recurrenceInterval', $data)) {
+            $event->setRecurrenceInterval($data['recurrenceInterval'] !== null ? (int) $data['recurrenceInterval'] : null);
         }
 
-        if (isset($data['recurrenceType'])) {
+        if (array_key_exists('recurrenceType', $data)) {
             $event->setRecurrenceType($data['recurrenceType']);
         }
 
