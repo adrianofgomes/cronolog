@@ -9,12 +9,7 @@ DEPLOY_DIR="./deploy_package"
 CORE_DIR="$DEPLOY_DIR/cronolog_core"
 PUBLIC_DIR="$DEPLOY_DIR/cronolog_public"
 
-MODE="light"
-if [ "$1" == "--full" ]; then
-    MODE="full"
-fi
-
-echo "🚀 Iniciando geração do pacote em modo: $MODE"
+echo "🚀 Iniciando geração do pacote de deploy..."
 
 echo "🧹 Limpando pacote anterior..."
 rm -rf $DEPLOY_DIR
@@ -37,8 +32,8 @@ touch "$CORE_DIR/logs/.gitkeep"
 
 echo "📦 Gerando pasta vendor de produção (sem dependências de dev)..."
 # Criamos um ambiente limpo para o composer no diretório de destino
-# Isso garante que apenas dependências do 'require' entrem, sem PHPUnit etc.
-composer install --no-dev --optimize-autoloader --no-interaction --working-dir="$CORE_DIR"
+# Usamos --ignore-platform-reqs para garantir compatibilidade se as extensões variam entre build e server
+composer install --no-dev --optimize-autoloader --no-interaction --working-dir="$CORE_DIR" --ignore-platform-reqs
 
 echo "🌐 Copiando arquivos públicos..."
 cp -r public/* $PUBLIC_DIR/

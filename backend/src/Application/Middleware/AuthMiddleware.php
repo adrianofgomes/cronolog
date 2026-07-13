@@ -101,7 +101,10 @@ class AuthMiddleware implements MiddlewareInterface
             $decoded = JWT::decode($token, new Key($jwtSettings['secret'], 'HS256'));
             return (array) $decoded;
         } catch (Exception $e) {
-            $this->logger->error('JWT Verification Error: ' . $e->getMessage());
+            $this->logger->error('JWT Verification Error: ' . $e->getMessage(), [
+                'token_length' => strlen($token),
+                'error_type' => get_class($e)
+            ]);
             return null;
         }
     }

@@ -1,9 +1,10 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
   data?: any;
   responseType?: 'json' | 'blob' | 'text';
+  silent?: boolean;
 }
 
 const getAuthToken = () => {
@@ -68,7 +69,7 @@ async function request(path: string, options: RequestOptions = {}) {
     });
 
     // Handle 401/403
-    if (response.status === 401 || response.status === 403) {
+    if ((response.status === 401 || response.status === 403) && !options.silent) {
       handleUnauthorized();
     }
 
@@ -93,7 +94,9 @@ async function request(path: string, options: RequestOptions = {}) {
 
     if (!response.ok) {
       // Mock axios error structure for compatibility
-      const error: any = new Error(responseData?.message || response.statusText);
+      // The backend returns { statusCode, data, error: { type, description } }
+      const errorMessage = responseData?.error?.description || responseData?.message || response.statusText;
+      const error: any = new Error(errorMessage);
       error.response = {
         status: response.status,
         data: responseData,

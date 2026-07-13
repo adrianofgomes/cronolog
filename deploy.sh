@@ -13,15 +13,13 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Parse de argumentos
-BUILD_MODE=""
-DEPLOY_METHOD="ssh"
 SKIP_TESTS=false
 DEPLOY_FRONT=true
 DEPLOY_BACK=true
+DEPLOY_METHOD="ssh"
 
 for arg in "$@"; do
     case $arg in
-        --full) BUILD_MODE="--full" ;;
         --ftp) DEPLOY_METHOD="--ftp" ;;
         --skipTests) SKIP_TESTS=true ;;
         --front|--frontend) DEPLOY_BACK=false ;;
@@ -30,7 +28,6 @@ for arg in "$@"; do
 done
 
 echo -e "${BLUE}🚀 Iniciando deploy unificado${NC}"
-echo -e "${BLUE}   Modo de Build: ${BUILD_MODE:-default}${NC}"
 echo -e "${BLUE}   Método: $DEPLOY_METHOD${NC}"
 echo -e "${BLUE}   Pular Testes: $SKIP_TESTS${NC}"
 echo -e "${BLUE}   Deploy Frontend: $DEPLOY_FRONT${NC}"
@@ -64,6 +61,8 @@ if [ "$SKIP_TESTS" == "false" ]; then
     
     # Testes Backend
     if [ "$DEPLOY_BACK" == "true" ]; then
+        echo -e "   🔹 Preparando ambiente de testes (Composer)..."
+        (cd backend && composer install --no-interaction --ignore-platform-reqs)
         echo -e "   🔹 Testes Backend (PHPUnit)..."
         if ! (cd backend && ./vendor/bin/phpunit --colors=always); then
             echo -e "\n${RED}❌ Erro: Os testes do backend falharam! O deploy foi abortado.${NC}"
@@ -79,7 +78,7 @@ if [ "$DEPLOY_BACK" == "true" ]; then
     echo -e "\n${BLUE}📦 [2/3] Fazendo deploy do BACKEND...${NC}"
     cd backend
     if [ -f "./publish_to_hostgator.sh" ]; then
-        bash ./publish_to_hostgator.sh $BUILD_MODE $DEPLOY_METHOD
+        bash ./publish_to_hostgator.sh "" $DEPLOY_METHOD
     else
         echo -e "${RED}❌ Script backend/publish_to_hostgator.sh não encontrado!${NC}"
         exit 1
@@ -92,7 +91,7 @@ if [ "$DEPLOY_FRONT" == "true" ]; then
     echo -e "\n${BLUE}📦 [3/3] Fazendo deploy do FRONTEND...${NC}"
     cd frontend
     if [ -f "./publish_to_hostgator.sh" ]; then
-        bash ./publish_to_hostgator.sh $BUILD_MODE $DEPLOY_METHOD
+        bash ./publish_to_hostgator.sh "" $DEPLOY_METHOD
     else
         echo -e "${RED}❌ Script frontend/publish_to_hostgator.sh não encontrado!${NC}"
         exit 1

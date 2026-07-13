@@ -50,7 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const { default: api } = await import('@/lib/api');
           const response = await api.get('/users/me', {
-            headers: { Authorization: `Bearer ${savedToken}` }
+            headers: { Authorization: `Bearer ${savedToken}` },
+            silent: true
           });
           const dbUser = response.data.data;
           const updatedUser: User = { 
@@ -80,7 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { default: api } = await import('@/lib/api');
       const response = await api.get('/users/me', {
-        headers: { Authorization: `Bearer ${newToken}` }
+        headers: { Authorization: `Bearer ${newToken}` },
+        silent: true
       });
       
       const dbUser = response.data.data;

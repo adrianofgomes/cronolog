@@ -37,86 +37,95 @@ class LoginAction extends Action
 
     protected function action(): Response
     {
-        $idToken = $this->request->getParsedBody()['id_token'] ?? null;
-        if (!$idToken) {
-            throw new HttpBadRequestException($this->request, 'ID Token is required.');
-        }
+        try {
+            $idToken = $this->request->getParsedBody()['id_token'] ?? null;
+            if (!$idToken) {
+                throw new HttpBadRequestException($this->request, 'ID Token is required.');
+            }
 
-        // 1. Verify Google ID Token
-        $payload = $this->verifyGoogleToken($idToken);
-        if (!$payload) {
-            throw new HttpUnauthorizedException($this->request, 'Invalid Google Token.');
-        }
+            // 1. Verify Google ID Token
+            $payload = $this->verifyGoogleToken($idToken);
+            if (!$payload) {
+                throw new HttpUnauthorizedException($this->request, 'Invalid Google Token.');
+            }
 
-        $googleId = $payload['sub'];
-        $email = $payload['email'];
-        $name = $payload['name'] ?? null;
-        $picture = $payload['picture'] ?? null;
+            $googleId = $payload['sub'];
+            $email = $payload['email'];
+            $name = $payload['name'] ?? null;
+            $picture = $payload['picture'] ?? null;
 
-        // 2. Find or Register User
-        $user = $this->userRepository->findUserByGoogleId($googleId);
-        
-        if (!$user) {
-            // Check if there is a pre-approved user with this email
-            $user = $this->userRepository->findUserByEmail($email);
+            // 2. Find or Register User
+            $user = $this->userRepository->findUserByGoogleId($googleId);
             
-            if ($user && $user->getStatus() === 'rejected') {
+            if (!$user) {
+                // Check if there is a pre-approved user with this email
+                $user = $this->userRepository->findUserByEmail($email);
+                
+                if ($user && $user->getStatus() === 'rejected') {
+                    throw new HttpUnauthorizedException($this->request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
+                }
+                
+                if ($user && $user->getStatus() === 'pre_approved') {
+                    // Activate pre-approved user
+                    $user = new User(
+                        $user->getId(),
+                        $googleId,
+                        $email,
+                        $name,
+                        $user->isAdmin(),
+                        'active'
+                    );
+                    $this->userRepository->update($user);
+                } else if (!$user) {
+                    // Normal auto-registration
+                    $user = new User(null, $googleId, $email, $name, false, 'pending');
+                    $this->userRepository->save($user);
+                    
+                    // Notifica administradores sobre novo usuário pendente
+                    try {
+                        $this->webPushService->notifyAdmins(
+                            "Novo Usuário Pendente",
+                            "O usuário $name ($email) acabou de se cadastrar e aguarda aprovação.",
+                            "/admin"
+                        );
+                    } catch (Exception $e) {
+                        $this->logger->error("Erro ao notificar admins: " . $e->getMessage());
+                    }
+                }
+                
+                // Re-fetch to ensure we have the ID and all fields
+                $user = $this->userRepository->findUserByGoogleId($googleId);
+            } else if ($user->getStatus() === 'rejected') {
                 throw new HttpUnauthorizedException($this->request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
             }
-            
-            if ($user && $user->getStatus() === 'pre_approved') {
-                // Activate pre-approved user
-                $user = new User(
-                    $user->getId(),
-                    $googleId,
-                    $email,
-                    $name,
-                    $user->isAdmin(),
-                    'active'
-                );
-                $this->userRepository->update($user);
-            } else if (!$user) {
-                // Normal auto-registration
-                $user = new User(null, $googleId, $email, $name, false, 'pending');
-                $this->userRepository->save($user);
-                
-                // Notifica administradores sobre novo usuário pendente
-                try {
-                    $this->webPushService->notifyAdmins(
-                        "Novo Usuário Pendente",
-                        "O usuário $name ($email) acabou de se cadastrar e aguarda aprovação.",
-                        "/admin"
-                    );
-                } catch (Exception $e) {
-                    $this->logger->error("Erro ao notificar admins: " . $e->getMessage());
-                }
-            }
-            
-            // Re-fetch to ensure we have the ID and all fields
-            $user = $this->userRepository->findUserByGoogleId($googleId);
-        } else if ($user->getStatus() === 'rejected') {
-            throw new HttpUnauthorizedException($this->request, 'Infelizmente não foi possível realizar o seu cadastro no momento.');
+
+            // 3. Generate Long-Lived Cronolog JWT
+            $jwtSettings = $this->settings->get('jwt');
+            $issuedAt = time();
+            $expire = $issuedAt + ($jwtSettings['expires_days'] * 86400);
+
+            $tokenPayload = [
+                'iat' => $issuedAt,
+                'exp' => $expire,
+                'sub' => $googleId,
+                'email' => $email,
+                'iss' => 'cronolog'
+            ];
+
+            $cronologToken = JWT::encode($tokenPayload, $jwtSettings['secret'], 'HS256');
+
+            return $this->respondWithData([
+                'token' => $cronologToken,
+                'user' => array_merge($user->jsonSerialize(), ['picture' => $picture])
+            ]);
+        } catch (\Throwable $t) {
+            $this->logger->error('Internal Login Error: ' . $t->getMessage(), [
+                'file' => $t->getFile(),
+                'line' => $t->getLine(),
+                'trace' => $t->getTraceAsString()
+            ]);
+            throw $t;
         }
-
-        // 3. Generate Long-Lived Cronolog JWT
-        $jwtSettings = $this->settings->get('jwt');
-        $issuedAt = time();
-        $expire = $issuedAt + ($jwtSettings['expires_days'] * 86400);
-
-        $tokenPayload = [
-            'iat' => $issuedAt,
-            'exp' => $expire,
-            'sub' => $googleId,
-            'email' => $email,
-            'iss' => 'cronolog'
-        ];
-
-        $cronologToken = JWT::encode($tokenPayload, $jwtSettings['secret'], 'HS256');
-
-        return $this->respondWithData([
-            'token' => $cronologToken,
-            'user' => array_merge($user->jsonSerialize(), ['picture' => $picture])
-        ]);
     }
 
     private function verifyGoogleToken(string $idToken): ?array
@@ -146,7 +155,18 @@ class LoginAction extends Action
             ]);
             return $payload ? (array) $payload : null;
         } catch (Exception $e) {
-            $this->logger->error('Google Token Verification Error (Login): ' . $e->getMessage());
+            $segments = explode('.', $idToken);
+            $segmentCount = count($segments);
+            $tokenLength = strlen($idToken);
+            $tokenStart = substr($idToken, 0, 10);
+            $tokenEnd = substr($idToken, -10);
+            
+            $this->logger->error('Google Token Verification Error (Login): ' . $e->getMessage(), [
+                'segment_count' => $segmentCount,
+                'token_length' => $tokenLength,
+                'token_preview' => "$tokenStart...$tokenEnd",
+                'client_id_configured' => !empty($clientId)
+            ]);
             return null;
         }
     }

@@ -54,9 +54,8 @@ class HttpErrorHandler extends SlimErrorHandler
         if (
             !($exception instanceof HttpException)
             && ($exception instanceof Exception || $exception instanceof Throwable)
-            && $this->displayErrorDetails
         ) {
-            $error->setDescription($exception->getMessage());
+            $error->setDescription($exception->getMessage() . ' in ' . $exception->getFile() . ':' . $exception->getLine());
         }
 
         $payload = new ActionPayload($statusCode, null, $error);
